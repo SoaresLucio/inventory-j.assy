@@ -163,8 +163,15 @@ function ColetaPage() {
                 required
                 className="h-12 text-base font-mono"
               />
-              <BarcodeScanner onDetected={(c) => { setItem(c); toast.success("Código capturado"); }} />
-              {/* Scanner inteligente: parsing automático dos 3 campos */}
+              <BarcodeScanner
+                onParsed={(p) => {
+                  setUc(p.uc);
+                  setItem(p.item_code);
+                  setLote(p.lote);
+                  toast.success("QR lido — UC, Item e Lote preenchidos");
+                  setTimeout(() => itemRef.current?.focus(), 50);
+                }}
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               Dica: use o <span className="font-semibold">QR Code</span> para preencher UC, Item e Lote automaticamente.
