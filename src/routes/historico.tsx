@@ -46,28 +46,32 @@ function HistoricoPage() {
       toast.error("Sem registros para exportar");
       return;
     }
+    const ordered = [...data].sort((a, b) => a.created_at.localeCompare(b.created_at));
     const sheet = XLSX.utils.json_to_sheet(
-      data.map((r) => ({
+      ordered.map((r, i) => ({
+        "#": i + 1,
+        "Inventarista (login)": profile?.social_name ?? "",
+        "Nome completo": profile?.full_name ?? "",
         "Código do Item": r.item_code,
         "Quantidade": r.quantidade,
         "UC": r.uc,
         "Lote": r.lote,
         "Endereço": r.endereco,
-        "Inventarista": profile?.social_name ?? "",
-        "Nome completo": profile?.full_name ?? "",
-        "Data/Hora": format(new Date(r.created_at), "dd/MM/yyyy HH:mm:ss"),
+        "Data": format(new Date(r.created_at), "dd/MM/yyyy"),
+        "Hora": format(new Date(r.created_at), "HH:mm:ss"),
+        "ID do registro": r.id,
       })),
     );
-    // larguras agradáveis
     sheet["!cols"] = [
-      { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
-      { wch: 18 }, { wch: 24 }, { wch: 20 },
+      { wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 16 }, { wch: 10 },
+      { wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 38 },
     ];
+    sheet["!autofilter"] = { ref: `A1:K${ordered.length + 1}` };
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Meu Inventário");
     const slug = (profile?.social_name ?? "inventarista").replace(/[^a-z0-9_-]/gi, "_");
     XLSX.writeFile(wb, `inventario_${slug}_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-    toast.success("Planilha gerada");
+    toast.success(`Planilha gerada · ${ordered.length} registros`);
   };
 
   return (
