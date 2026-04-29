@@ -55,7 +55,7 @@ function HistoricoPage() {
               <div>
                 <div className="font-mono font-semibold">{it.item_code}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  UC {it.uc} · Lote {it.lote} · {it.endereco}
+                  Qtd {it.quantidade} · UC {it.uc} · Lote {it.lote} · {it.endereco}
                 </div>
               </div>
               <div className="text-xs text-muted-foreground text-right shrink-0">
