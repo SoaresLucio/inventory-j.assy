@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { enqueueItem, flushQueue, pendingCount } from "@/lib/offline-queue";
-import { CheckCircle2, CloudOff, Loader2, Send, WifiOff } from "lucide-react";
+import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/coleta")({
   component: () => (
@@ -49,6 +49,7 @@ function ColetaPage() {
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [pending, setPending] = useState(0);
   const [lastCount, setLastCount] = useState(0);
+  const [floatPts, setFloatPts] = useState(0);
 
   const refreshPending = () => pendingCount().then(setPending);
 
@@ -92,6 +93,9 @@ function ColetaPage() {
     },
     onSuccess: (res) => {
       setLastCount((c) => c + 1);
+      const qty = parseInt(quantidade, 10) || 1;
+      setFloatPts(qty * 10);
+      setTimeout(() => setFloatPts(0), 1200);
       if (res.offline) {
         toast.info("Salvo offline. Sincroniza ao voltar a conexão.");
         refreshPending();
@@ -117,6 +121,13 @@ function ColetaPage() {
 
   return (
     <div className="space-y-4">
+      {floatPts > 0 && (
+        <div className="pointer-events-none fixed inset-x-0 top-24 z-50 flex justify-center">
+          <div className="animate-[floatup_1.2s_ease-out_forwards] flex items-center gap-1.5 rounded-full bg-[var(--gradient-primary)] px-4 py-2 text-primary-foreground shadow-[var(--shadow-elevated)] font-display font-bold">
+            <Sparkles className="h-4 w-4" /> +{floatPts} pts
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Nova coleta</h1>
@@ -152,8 +163,19 @@ function ColetaPage() {
                 required
                 className="h-12 text-base font-mono"
               />
-              <BarcodeScanner onDetected={(c) => { setItem(c); toast.success("Código capturado"); }} />
+              <BarcodeScanner
+                onParsed={(p) => {
+                  setUc(p.uc);
+                  setItem(p.item_code);
+                  setLote(p.lote);
+                  toast.success("QR lido — UC, Item e Lote preenchidos");
+                  setTimeout(() => itemRef.current?.focus(), 50);
+                }}
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Dica: use o <span className="font-semibold">QR Code</span> para preencher UC, Item e Lote automaticamente.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -160,3 +160,9 @@
     letter-spacing: -0.02em;
   }
 }
+
+@keyframes floatup {
+  0% { opacity: 0; transform: translateY(8px) scale(0.92); }
+  20% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1); }
+}

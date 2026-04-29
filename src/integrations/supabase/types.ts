@@ -55,18 +55,21 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          points: number
           social_name: string
         }
         Insert: {
           created_at?: string
           full_name: string
           id: string
+          points?: number
           social_name: string
         }
         Update: {
           created_at?: string
           full_name?: string
           id?: string
+          points?: number
           social_name?: string
         }
         Relationships: []
@@ -94,7 +97,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ranking_view: {
+        Row: {
+          full_name: string | null
+          items_today: number | null
+          items_total: number | null
+          items_week: number | null
+          points: number | null
+          social_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {

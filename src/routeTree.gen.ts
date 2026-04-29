@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as GestorRouteImport } from './routes/gestor'
 import { Route as ColetaRouteImport } from './routes/coleta'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/ranking': typeof RankingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/ranking': typeof RankingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,21 @@ export interface FileRoutesById {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/ranking': typeof RankingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/coleta' | '/gestor' | '/historico'
+  fullPaths: '/' | '/auth' | '/coleta' | '/gestor' | '/historico' | '/ranking'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/coleta' | '/gestor' | '/historico'
-  id: '__root__' | '/' | '/auth' | '/coleta' | '/gestor' | '/historico'
+  to: '/' | '/auth' | '/coleta' | '/gestor' | '/historico' | '/ranking'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/coleta'
+    | '/gestor'
+    | '/historico'
+    | '/ranking'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +93,18 @@ export interface RootRouteChildren {
   ColetaRoute: typeof ColetaRoute
   GestorRoute: typeof GestorRoute
   HistoricoRoute: typeof HistoricoRoute
+  RankingRoute: typeof RankingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historico': {
       id: '/historico'
       path: '/historico'
@@ -125,6 +149,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColetaRoute: ColetaRoute,
   GestorRoute: GestorRoute,
   HistoricoRoute: HistoricoRoute,
+  RankingRoute: RankingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
