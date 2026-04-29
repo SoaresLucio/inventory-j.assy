@@ -1,26 +1,63 @@
-// Parser do QR Code: aceita 3 segmentos com tamanhos UC=9, Item=11, Lote=10.
-// Separadores aceitos: |, ;, espaço, tab, nova linha, vírgula.
+// Parser do QR Code: identifica 3 segmentos numéricos com tamanhos
+// UC=9, Item=11 (ou 13 — alguns SKUs internos vêm com 13 dígitos), Lote=10.
+// Aceita praticamente qualquer separador (|, ;, ,, espaço, tab, quebra de linha,
+// -, /, :, _) e também strings numéricas contínuas de 30 dígitos.
 export interface ParsedQR {
   uc: string;
   item_code: string;
   lote: string;
 }
 
+const UC_LEN = 9;
+const ITEM_LEN = 11;
+const LOTE_LEN = 10;
+
+function onlyDigits(s: string) {
+  return s.replace(/\D+/g, "");
+}
+
+function tryByLengths(parts: string[]): ParsedQR | null {
+  // mapeia somente partes 100% numéricas
+  const nums = parts.map(onlyDigits).filter((p) => p.length > 0);
+  if (nums.length < 3) return null;
+
+  const uc = nums.find((n) => n.length === UC_LEN);
+  const item = nums.find((n) => n.length === ITEM_LEN);
+  const lote = nums.find((n) => n.length === LOTE_LEN);
+  if (uc && item && lote) return { uc, item_code: item, lote };
+
+  // fallback: assume ordem UC, Item, Lote nos 3 primeiros segmentos numéricos
+  const [a, b, c] = nums;
+  if (
+    a?.length === UC_LEN &&
+    b?.length === ITEM_LEN &&
+    c?.length === LOTE_LEN
+  ) {
+    return { uc: a, item_code: b, lote: c };
+  }
+  return null;
+}
+
 export function parseQrPayload(raw: string): ParsedQR | null {
   if (!raw) return null;
   const cleaned = raw.trim();
-  // tenta separadores comuns
-  const parts = cleaned.split(/[|;,\s\t\n\r]+/).filter(Boolean);
-  let candidate: string[] | null = null;
-  if (parts.length >= 3) {
-    candidate = parts.slice(0, 3);
-  } else if (cleaned.length === 9 + 11 + 10 && /^\d+$/.test(cleaned)) {
-    // string numérica contínua de 30 dígitos
-    candidate = [cleaned.slice(0, 9), cleaned.slice(9, 20), cleaned.slice(20, 30)];
+  if (!cleaned) return null;
+
+  // 1) split por qualquer caractere que não seja dígito como separador
+  // (mais tolerante: |, ;, ,, espaço, tab, \n, -, /, :, _, etc.)
+  const parts = cleaned.split(/[^0-9A-Za-z]+/).filter(Boolean);
+  const byParts = tryByLengths(parts);
+  if (byParts) return byParts;
+
+  // 2) string numérica contínua (30 dígitos) — extrai apenas dígitos
+  const digits = onlyDigits(cleaned);
+  if (digits.length === UC_LEN + ITEM_LEN + LOTE_LEN) {
+    return {
+      uc: digits.slice(0, UC_LEN),
+      item_code: digits.slice(UC_LEN, UC_LEN + ITEM_LEN),
+      lote: digits.slice(UC_LEN + ITEM_LEN),
+    };
   }
-  if (!candidate) return null;
-  const [uc, item_code, lote] = candidate;
-  if (uc.length !== 9 || item_code.length !== 11 || lote.length !== 10) return null;
-  if (!/^\d+$/.test(uc) || !/^\d+$/.test(item_code) || !/^\d+$/.test(lote)) return null;
-  return { uc, item_code, lote };
+
+  return null;
 }
