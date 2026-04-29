@@ -70,8 +70,7 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
         );
         // detecta suporte a torch
         try {
-          const caps = scanner.getRunningTrackCameraCapabilities?.();
-          // @ts-expect-error torch não está no tipo padrão
+          const caps = (scanner as unknown as { getRunningTrackCameraCapabilities?: () => { torchFeature?: () => { isSupported?: () => boolean } } }).getRunningTrackCameraCapabilities?.();
           if (caps?.torchFeature?.()?.isSupported?.()) setTorchSupported(true);
         } catch { /* noop */ }
       } catch {
@@ -98,10 +97,9 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
     const s = scannerRef.current;
     if (!s) return;
     try {
-      const caps = s.getRunningTrackCameraCapabilities?.();
-      // @ts-expect-error API experimental
+      const caps = (s as unknown as { getRunningTrackCameraCapabilities?: () => { torchFeature?: () => { isSupported?: () => boolean; apply?: (v: boolean) => Promise<void> } } }).getRunningTrackCameraCapabilities?.();
       const torch = caps?.torchFeature?.();
-      if (torch?.isSupported?.()) {
+      if (torch?.isSupported?.() && torch.apply) {
         await torch.apply(!torchOn);
         setTorchOn(!torchOn);
       } else {
