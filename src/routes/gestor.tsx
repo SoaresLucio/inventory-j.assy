@@ -87,26 +87,48 @@ function GestorPage() {
 
   const exportXlsx = () => {
     if (filtered.length === 0) return toast.error("Sem registros para exportar");
+    // Ordenar por inventarista e depois por data para uma planilha legível
+    const ordered = [...filtered].sort((a, b) => {
+      const n = a.social_name.localeCompare(b.social_name, "pt-BR");
+      if (n !== 0) return n;
+      return a.created_at.localeCompare(b.created_at);
+    });
     const sheet = XLSX.utils.json_to_sheet(
-      filtered.map((r) => ({
+      ordered.map((r, i) => ({
+        "#": i + 1,
+        "Inventarista (login)": r.social_name,
+        "Nome completo": r.full_name,
         "Código do Item": r.item_code,
         "Quantidade": r.quantidade,
         "UC": r.uc,
         "Lote": r.lote,
         "Endereço": r.endereco,
-        "Inventarista (nome social)": r.social_name,
-        "Nome completo": r.full_name,
-        "Data/Hora": format(new Date(r.created_at), "dd/MM/yyyy HH:mm:ss"),
+        "Data": format(new Date(r.created_at), "dd/MM/yyyy"),
+        "Hora": format(new Date(r.created_at), "HH:mm:ss"),
+        "ID do registro": r.id,
+        "ID do usuário": r.user_id,
       })),
     );
     sheet["!cols"] = [
-      { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
-      { wch: 22 }, { wch: 24 }, { wch: 20 },
+      { wch: 5 },  // #
+      { wch: 22 }, // login
+      { wch: 28 }, // nome completo
+      { wch: 16 }, // item
+      { wch: 10 }, // qtd
+      { wch: 12 }, // uc
+      { wch: 14 }, // lote
+      { wch: 18 }, // endereço
+      { wch: 12 }, // data
+      { wch: 10 }, // hora
+      { wch: 38 }, // id registro
+      { wch: 38 }, // id usuário
     ];
+    sheet["!autofilter"] = { ref: `A1:L${ordered.length + 1}` };
+    sheet["!freeze"] = { xSplit: 0, ySplit: 1 } as never;
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, sheet, "Inventario");
+    XLSX.utils.book_append_sheet(wb, sheet, "Inventário");
     XLSX.writeFile(wb, `inventario_jassy_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-    toast.success("Planilha gerada");
+    toast.success(`Planilha gerada · ${ordered.length} registros`);
   };
 
   return (
