@@ -98,6 +98,10 @@ function GestorPage() {
         "Data/Hora": format(new Date(r.created_at), "dd/MM/yyyy HH:mm:ss"),
       })),
     );
+    sheet["!cols"] = [
+      { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
+      { wch: 22 }, { wch: 24 }, { wch: 20 },
+    ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Inventario");
     XLSX.writeFile(wb, `inventario_jassy_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
