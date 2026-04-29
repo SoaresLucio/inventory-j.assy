@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ClipboardList, History, LayoutDashboard, LogOut, PackageCheck } from "lucide-react";
+import { ClipboardList, History, LayoutDashboard, LogOut, PackageCheck, Trophy } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
@@ -19,10 +19,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       ? [
           { to: "/gestor", label: "Painel", icon: LayoutDashboard },
           { to: "/coleta", label: "Coletar", icon: ClipboardList },
+          { to: "/ranking", label: "Ranking", icon: Trophy },
           { to: "/historico", label: "Histórico", icon: History },
         ]
       : [
           { to: "/coleta", label: "Coletar", icon: ClipboardList },
+          { to: "/ranking", label: "Ranking", icon: Trophy },
           { to: "/historico", label: "Histórico", icon: History },
         ];
 
