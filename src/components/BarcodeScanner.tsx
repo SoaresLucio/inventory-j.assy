@@ -34,12 +34,34 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
   const [open, setOpen] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
   const containerId = "jassy-scanner-region";
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const handledRef = useRef(false);
+  const lastInvalidAtRef = useRef(0);
+  const lastInvalidPayloadRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    let active = true;
+    handledRef.current = false;
+    setHint(null);
+    let cancelled = false;
+
+    const stopScanner = async () => {
+      const s = scannerRef.current;
+      if (!s) return;
+      try {
+        // só chama stop se estiver de fato rodando
+        const state = (s as unknown as { getState?: () => number }).getState?.();
+        // 2 = SCANNING (Html5QrcodeScannerState.SCANNING)
+        if (state === 2) {
+          await s.stop();
+        }
+      } catch { /* noop */ }
+      try { s.clear(); } catch { /* noop */ }
+      scannerRef.current = null;
+    };
+
     const start = async () => {
       // 1) Verifica suporte
       if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -53,7 +75,6 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
           video: { facingMode: { ideal: "environment" } },
           audio: false,
         });
-        // libera o stream — o html5-qrcode abrirá o seu próprio
         stream.getTracks().forEach((t) => t.stop());
       } catch (err) {
         const name = (err as { name?: string })?.name ?? "";
@@ -69,34 +90,60 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
         setOpen(false);
         return;
       }
+
+      if (cancelled) return;
+
       // 3) Inicia o scanner
       try {
         const scanner = new Html5Qrcode(containerId, { verbose: false });
         scannerRef.current = scanner;
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 260, height: 260 } },
+          {
+            fps: 10,
+            qrbox: { width: 260, height: 260 },
+            aspectRatio: 1,
+          },
           (decoded) => {
-            if (!active) return;
+            if (handledRef.current) return;
+            const parsed = parseQrPayload(decoded);
+
             if (onParsed) {
-              const parsed = parseQrPayload(decoded);
               if (!parsed) {
-                toast.error("Código Inválido — esperado UC(9) | Item(11) | Lote(10)");
-                return;
+                // throttle de feedback inválido (evita spam de toasts ao mirar)
+                const now = Date.now();
+                if (lastInvalidPayloadRef.current !== decoded || now - lastInvalidAtRef.current > 1500) {
+                  lastInvalidPayloadRef.current = decoded;
+                  lastInvalidAtRef.current = now;
+                  setHint("Código inválido — esperado UC(9) · Item(11) · Lote(10)");
+                  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([30, 50, 30]);
+                }
+                return; // não fecha o scanner — deixa tentar de novo
               }
-              active = false;
+              handledRef.current = true;
               beep();
-              onParsed(parsed);
-              setOpen(false);
+              setHint(null);
+              // fecha primeiro a câmera para evitar callbacks duplicados,
+              // depois entrega os dados parseados
+              stopScanner().finally(() => {
+                onParsed(parsed);
+                setOpen(false);
+              });
               return;
             }
-            active = false;
+
+            // Modo legacy: entrega payload bruto
+            handledRef.current = true;
             beep();
-            onDetected?.(decoded);
-            setOpen(false);
+            stopScanner().finally(() => {
+              onDetected?.(decoded);
+              setOpen(false);
+            });
           },
-          () => {},
+          () => { /* erros por frame: ignorar */ },
         );
+
+        // Tenta detectar suporte a flash/torch
         try {
           const caps = (scanner as unknown as { getRunningTrackCameraCapabilities?: () => { torchFeature?: () => { isSupported?: () => boolean } } }).getRunningTrackCameraCapabilities?.();
           if (caps?.torchFeature?.()?.isSupported?.()) setTorchSupported(true);
@@ -106,16 +153,12 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
         setOpen(false);
       }
     };
+
     start();
+
     return () => {
-      active = false;
-      const s = scannerRef.current;
-      if (s) {
-        s.stop().catch(() => {}).finally(() => {
-          try { s.clear(); } catch { /* noop */ }
-        });
-        scannerRef.current = null;
-      }
+      cancelled = true;
+      stopScanner();
       setTorchOn(false);
       setTorchSupported(false);
     };
@@ -167,6 +210,13 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
                 <span className="absolute -bottom-px -right-px h-8 w-8 border-b-4 border-r-4 border-primary rounded-br-md" />
               </div>
             </div>
+            {hint && (
+              <div className="absolute inset-x-0 bottom-2 flex justify-center px-3">
+                <div className="rounded-md bg-destructive/90 text-destructive-foreground text-xs font-medium px-3 py-1.5 shadow">
+                  {hint}
+                </div>
+              </div>
+            )}
           </div>
           <p className="text-xs text-muted-foreground text-center px-4 py-2">
             Esperado: <span className="font-mono">UC(9) · Item(11) · Lote(10)</span>
