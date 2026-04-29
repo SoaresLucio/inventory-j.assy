@@ -8,6 +8,7 @@ export interface QueuedItem {
   uc: string;
   lote: string;
   endereco: string;
+  quantidade: number;
   created_at: string;
 }
 
