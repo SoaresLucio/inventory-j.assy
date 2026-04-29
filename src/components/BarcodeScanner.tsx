@@ -42,7 +42,9 @@ export function BarcodeScanner({ onDetected }: Props) {
       active = false;
       const s = scannerRef.current;
       if (s) {
-        s.stop().catch(() => {}).finally(() => s.clear().catch(() => {}));
+        s.stop().catch(() => {}).finally(() => {
+          try { s.clear(); } catch { /* noop */ }
+        });
         scannerRef.current = null;
       }
     };
