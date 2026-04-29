@@ -33,6 +33,7 @@ const schema = z.object({
   uc: z.string().trim().min(1, "UC obrigatória").max(40),
   lote: z.string().trim().min(1, "Lote obrigatório").max(40),
   endereco: z.string().trim().min(1, "Endereço obrigatório").max(60),
+  quantidade: z.coerce.number().int("Use número inteiro").positive("Quantidade deve ser maior que 0").max(999999, "Quantidade muito alta"),
 });
 
 function ColetaPage() {
@@ -44,6 +45,7 @@ function ColetaPage() {
   const [uc, setUc] = useState("");
   const [lote, setLote] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [quantidade, setQuantidade] = useState("1");
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [pending, setPending] = useState(0);
   const [lastCount, setLastCount] = useState(0);
@@ -100,6 +102,7 @@ function ColetaPage() {
       // Reset apenas Item e Lote (UC/Endereço normalmente repetem)
       setItem("");
       setLote("");
+      setQuantidade("1");
       setTimeout(() => itemRef.current?.focus(), 50);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
@@ -107,7 +110,7 @@ function ColetaPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ item_code: item, uc, lote, endereco });
+    const parsed = schema.safeParse({ item_code: item, uc, lote, endereco, quantidade });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     mutation.mutate(parsed.data);
   };
@@ -164,9 +167,25 @@ function ColetaPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="endereco">Endereço (galpão)</Label>
-            <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="ex: A-12-03" required className="h-12 text-base" />
+          <div className="grid grid-cols-[1fr_110px] gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="endereco">Endereço (galpão)</Label>
+              <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="ex: A-12-03" required className="h-12 text-base" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantidade">Quantidade</Label>
+              <Input
+                id="quantidade"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                required
+                className="h-12 text-base font-mono text-center"
+              />
+            </div>
           </div>
 
           <Button type="submit" disabled={mutation.isPending} className="w-full h-14 text-base shadow-[var(--shadow-elevated)]">

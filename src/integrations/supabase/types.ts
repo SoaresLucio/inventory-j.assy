@@ -22,6 +22,7 @@ export type Database = {
           id: string
           item_code: string
           lote: string
+          quantidade: number
           uc: string
           user_id: string
         }
@@ -32,6 +33,7 @@ export type Database = {
           id?: string
           item_code: string
           lote: string
+          quantidade?: number
           uc: string
           user_id: string
         }
@@ -42,6 +44,7 @@ export type Database = {
           id?: string
           item_code?: string
           lote?: string
+          quantidade?: number
           uc?: string
           user_id?: string
         }

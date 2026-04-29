@@ -34,6 +34,7 @@ interface Row {
   uc: string;
   lote: string;
   endereco: string;
+  quantidade: number;
   user_id: string;
   created_at: string;
   social_name: string;
@@ -79,7 +80,8 @@ function GestorPage() {
 
   const totals = useMemo(() => {
     const users = new Set(filtered.map((r) => r.user_id));
-    return { items: filtered.length, users: users.size };
+    const qty = filtered.reduce((s, r) => s + (r.quantidade ?? 0), 0);
+    return { items: filtered.length, users: users.size, qty };
   }, [filtered]);
 
   const exportXlsx = () => {
@@ -87,6 +89,7 @@ function GestorPage() {
     const sheet = XLSX.utils.json_to_sheet(
       filtered.map((r) => ({
         "Código do Item": r.item_code,
+        "Quantidade": r.quantidade,
         "UC": r.uc,
         "Lote": r.lote,
         "Endereço": r.endereco,
@@ -121,7 +124,7 @@ function GestorPage() {
             </div>
             <div>
               <div className="text-2xl font-bold">{totals.items}</div>
-              <div className="text-xs text-muted-foreground">Itens (filtrados)</div>
+              <div className="text-xs text-muted-foreground">Registros · {totals.qty} un.</div>
             </div>
           </div>
         </Card>
@@ -172,6 +175,7 @@ function GestorPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Item</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
                 <TableHead>UC</TableHead>
                 <TableHead>Lote</TableHead>
                 <TableHead>Endereço</TableHead>
@@ -181,13 +185,14 @@ function GestorPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum registro</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum registro</TableCell></TableRow>
               ) : (
                 filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-mono font-semibold">{r.item_code}</TableCell>
+                    <TableCell className="text-right font-mono">{r.quantidade}</TableCell>
                     <TableCell>{r.uc}</TableCell>
                     <TableCell>{r.lote}</TableCell>
                     <TableCell>{r.endereco}</TableCell>
