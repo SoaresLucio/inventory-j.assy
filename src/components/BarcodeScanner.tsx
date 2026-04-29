@@ -41,6 +41,35 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
     if (!open) return;
     let active = true;
     const start = async () => {
+      // 1) Verifica suporte
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        toast.error("Câmera não suportada neste navegador.");
+        setOpen(false);
+        return;
+      }
+      // 2) Solicita explicitamente a permissão de câmera (gera o prompt do SO)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        // libera o stream — o html5-qrcode abrirá o seu próprio
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (err) {
+        const name = (err as { name?: string })?.name ?? "";
+        if (name === "NotAllowedError" || name === "SecurityError") {
+          toast.error("Permissão da câmera negada. Habilite nas configurações do navegador.", { duration: 6000 });
+        } else if (name === "NotFoundError") {
+          toast.error("Nenhuma câmera encontrada no dispositivo.");
+        } else if (!window.isSecureContext) {
+          toast.error("Câmera exige HTTPS. Use o app instalado ou domínio seguro.");
+        } else {
+          toast.error("Não foi possível acessar a câmera.");
+        }
+        setOpen(false);
+        return;
+      }
+      // 3) Inicia o scanner
       try {
         const scanner = new Html5Qrcode(containerId, { verbose: false });
         scannerRef.current = scanner;
@@ -53,7 +82,7 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
               const parsed = parseQrPayload(decoded);
               if (!parsed) {
                 toast.error("Código Inválido — esperado UC(9) | Item(11) | Lote(10)");
-                return; // segue escaneando
+                return;
               }
               active = false;
               beep();
@@ -68,13 +97,12 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
           },
           () => {},
         );
-        // detecta suporte a torch
         try {
           const caps = (scanner as unknown as { getRunningTrackCameraCapabilities?: () => { torchFeature?: () => { isSupported?: () => boolean } } }).getRunningTrackCameraCapabilities?.();
           if (caps?.torchFeature?.()?.isSupported?.()) setTorchSupported(true);
         } catch { /* noop */ }
       } catch {
-        toast.error("Não foi possível acessar a câmera.");
+        toast.error("Falha ao iniciar a câmera.");
         setOpen(false);
       }
     };
