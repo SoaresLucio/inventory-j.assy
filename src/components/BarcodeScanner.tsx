@@ -115,7 +115,7 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
                 if (lastInvalidPayloadRef.current !== decoded || now - lastInvalidAtRef.current > 1500) {
                   lastInvalidPayloadRef.current = decoded;
                   lastInvalidAtRef.current = now;
-                  setHint("Código inválido — esperado UC(9) · Item(11) · Lote(10)");
+                  setHint("Código inválido — esperado UC(9 díg) · Item(11 díg) · Lote");
                   if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([30, 50, 30]);
                 }
                 return; // não fecha o scanner — deixa tentar de novo
@@ -219,7 +219,7 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
             )}
           </div>
           <p className="text-xs text-muted-foreground text-center px-4 py-2">
-            Esperado: <span className="font-mono">UC(9) · Item(11) · Lote(10)</span>
+            Esperado: <span className="font-mono">UC(9 díg) · Item(11 díg) · Lote (variável)</span>
           </p>
         </DialogContent>
       </Dialog>
