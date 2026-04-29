@@ -223,7 +223,12 @@ function GestorPage() {
                     <TableCell>{r.uc}</TableCell>
                     <TableCell>{r.lote}</TableCell>
                     <TableCell>{r.endereco}</TableCell>
-                    <TableCell className="text-sm">{r.social_name}</TableCell>
+                    <TableCell className="text-sm">
+                      <div className="font-medium">{r.social_name}</div>
+                      {r.full_name && r.full_name !== r.social_name && (
+                        <div className="text-xs text-muted-foreground">{r.full_name}</div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{format(new Date(r.created_at), "dd/MM HH:mm")}</TableCell>
                   </TableRow>
                 ))
