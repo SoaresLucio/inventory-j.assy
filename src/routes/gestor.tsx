@@ -50,18 +50,19 @@ function GestorPage() {
     queryKey: ["inventory", "all"],
     queryFn: async () => {
       const [items, profs] = await Promise.all([
-        supabase.from("inventory_items").select("*").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("profiles").select("*"),
+        supabase.from("inventory_items").select("*").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("profiles").select("id, full_name, social_name"),
       ]);
       if (items.error) throw items.error;
       if (profs.error) throw profs.error;
       const map = new Map(profs.data!.map((p) => [p.id, p]));
       const rows: Row[] = items.data!.map((it) => {
         const p = map.get(it.user_id);
+        const fallback = it.user_id ? `Usuário ${it.user_id.slice(0, 8)}` : "Desconhecido";
         return {
           ...it,
-          social_name: p?.social_name ?? "—",
-          full_name: p?.full_name ?? "—",
+          social_name: p?.social_name?.trim() || fallback,
+          full_name: p?.full_name?.trim() || fallback,
         };
       });
       return { rows, profiles: profs.data! };
