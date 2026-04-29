@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ClipboardList, History, LayoutDashboard, LogOut, PackageCheck, Trophy } from "lucide-react";
+import { ClipboardList, History, LayoutDashboard, LogOut, PackageCheck, Trophy, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     role === "gestor"
       ? [
           { to: "/gestor", label: "Painel", icon: LayoutDashboard },
-          { to: "/coleta", label: "Coletar", icon: ClipboardList },
+          { to: "/usuarios", label: "Usuários", icon: Users },
           { to: "/ranking", label: "Ranking", icon: Trophy },
           { to: "/historico", label: "Histórico", icon: History },
         ]
