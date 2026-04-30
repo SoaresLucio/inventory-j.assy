@@ -69,6 +69,11 @@ function HistoricoPage() {
         <div>
           <h1 className="text-2xl font-bold">Meu histórico</h1>
           <p className="text-sm text-muted-foreground">{data?.length ?? 0} registros</p>
+          {profile?.full_name && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Inventariado por: <span className="font-bold text-foreground">{profile.full_name}</span>
+            </p>
+          )}
         </div>
         <Button onClick={exportXlsx} disabled={!data || data.length === 0} className="h-11">
           <Download className="h-4 w-4 mr-2" /> Exportar Excel
