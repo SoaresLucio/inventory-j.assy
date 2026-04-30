@@ -25,7 +25,6 @@ export const Route = createFileRoute("/ranking")({
 interface RankingRow {
   user_id: string;
   social_name: string;
-  full_name: string;
   points: number;
   items_today: number;
   items_week: number;
