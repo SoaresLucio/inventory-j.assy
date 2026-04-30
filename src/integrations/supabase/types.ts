@@ -130,19 +130,20 @@ export type Database = {
       }
     }
     Views: {
-      ranking_view: {
-        Row: {
-          items_today: number | null
-          items_total: number | null
-          items_week: number | null
-          points: number | null
-          social_name: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_ranking: {
+        Args: never
+        Returns: {
+          items_today: number
+          items_total: number
+          items_week: number
+          points: number
+          social_name: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
