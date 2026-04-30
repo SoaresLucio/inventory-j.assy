@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { ProtectedShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Filter, Package, Users } from "lucide-react";
 import { toast } from "sonner";
+import { exportInventoryXlsx, xlsxFilename, type InventoryRow } from "@/lib/export-xlsx";
 
 export const Route = createFileRoute("/gestor")({
   component: () => (
@@ -28,18 +28,9 @@ export const Route = createFileRoute("/gestor")({
   }),
 });
 
-interface Row {
-  id: string;
-  item_code: string;
-  uc: string;
-  lote: string;
-  endereco: string;
-  quantidade: number;
-  user_id: string;
-  created_at: string;
-  social_name: string;
-  full_name: string;
-}
+type Row = InventoryRow & { social_name: string; full_name: string };
+
+interface Profile { id: string; full_name: string; social_name: string }
 
 function GestorPage() {
   const [userFilter, setUserFilter] = useState<string>("all");
@@ -55,7 +46,7 @@ function GestorPage() {
       ]);
       if (items.error) throw items.error;
       if (profs.error) throw profs.error;
-      const map = new Map(profs.data!.map((p) => [p.id, p]));
+      const map = new Map<string, Profile>(profs.data!.map((p) => [p.id, p]));
       const rows: Row[] = items.data!.map((it) => {
         const p = map.get(it.user_id);
         const fallback = it.user_id ? `Usuário ${it.user_id.slice(0, 8)}` : "Desconhecido";
@@ -71,64 +62,36 @@ function GestorPage() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
+    const end = enderecoFilter.toLowerCase();
     return data.rows.filter((r) => {
       if (userFilter !== "all" && r.user_id !== userFilter) return false;
-      if (enderecoFilter && !r.endereco.toLowerCase().includes(enderecoFilter.toLowerCase())) return false;
+      if (end && !r.endereco.toLowerCase().includes(end)) return false;
       if (dateFilter && !r.created_at.startsWith(dateFilter)) return false;
       return true;
     });
   }, [data, userFilter, enderecoFilter, dateFilter]);
 
   const totals = useMemo(() => {
-    const users = new Set(filtered.map((r) => r.user_id));
-    const qty = filtered.reduce((s, r) => s + (r.quantidade ?? 0), 0);
+    const users = new Set<string>();
+    let qty = 0;
+    for (const r of filtered) {
+      users.add(r.user_id);
+      qty += r.quantidade ?? 0;
+    }
     return { items: filtered.length, users: users.size, qty };
   }, [filtered]);
 
-  const exportXlsx = () => {
-    if (filtered.length === 0) return toast.error("Sem registros para exportar");
-    // Ordenar por inventarista e depois por data para uma planilha legível
-    const ordered = [...filtered].sort((a, b) => {
-      const n = a.social_name.localeCompare(b.social_name, "pt-BR");
-      if (n !== 0) return n;
-      return a.created_at.localeCompare(b.created_at);
-    });
-    const sheet = XLSX.utils.json_to_sheet(
-      ordered.map((r, i) => ({
-        "#": i + 1,
-        "Inventarista (login)": r.social_name,
-        "Nome completo": r.full_name,
-        "Código do Item": r.item_code,
-        "Quantidade": r.quantidade,
-        "UC": r.uc,
-        "Lote": r.lote,
-        "Endereço": r.endereco,
-        "Data": format(new Date(r.created_at), "dd/MM/yyyy"),
-        "Hora": format(new Date(r.created_at), "HH:mm:ss"),
-        "ID do registro": r.id,
-        "ID do usuário": r.user_id,
-      })),
-    );
-    sheet["!cols"] = [
-      { wch: 5 },  // #
-      { wch: 22 }, // login
-      { wch: 28 }, // nome completo
-      { wch: 16 }, // item
-      { wch: 10 }, // qtd
-      { wch: 12 }, // uc
-      { wch: 14 }, // lote
-      { wch: 18 }, // endereço
-      { wch: 12 }, // data
-      { wch: 10 }, // hora
-      { wch: 38 }, // id registro
-      { wch: 38 }, // id usuário
-    ];
-    sheet["!autofilter"] = { ref: `A1:L${ordered.length + 1}` };
-    sheet["!freeze"] = { xSplit: 0, ySplit: 1 } as never;
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, sheet, "Inventário");
-    XLSX.writeFile(wb, `inventario_jassy_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-    toast.success(`Planilha gerada · ${ordered.length} registros`);
+  const exportXlsx = async () => {
+    try {
+      const n = await exportInventoryXlsx({
+        rows: filtered,
+        filename: xlsxFilename("inventario_jassy"),
+        includeUserId: true,
+      });
+      toast.success(`Planilha gerada · ${n} registros`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar");
+    }
   };
 
   return (
@@ -216,22 +179,7 @@ function GestorPage() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum registro</TableCell></TableRow>
               ) : (
-                filtered.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono font-semibold">{r.item_code}</TableCell>
-                    <TableCell className="text-right font-mono">{r.quantidade}</TableCell>
-                    <TableCell>{r.uc}</TableCell>
-                    <TableCell>{r.lote}</TableCell>
-                    <TableCell>{r.endereco}</TableCell>
-                    <TableCell className="text-sm">
-                      <div className="font-medium">{r.social_name}</div>
-                      {r.full_name && r.full_name !== r.social_name && (
-                        <div className="text-xs text-muted-foreground">{r.full_name}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">{format(new Date(r.created_at), "dd/MM HH:mm")}</TableCell>
-                  </TableRow>
-                ))
+                filtered.map((r) => <InventoryRowItem key={r.id} row={r} />)
               )}
             </TableBody>
           </Table>
@@ -240,3 +188,22 @@ function GestorPage() {
     </div>
   );
 }
+
+const InventoryRowItem = memo(function InventoryRowItem({ row: r }: { row: Row }) {
+  return (
+    <TableRow>
+      <TableCell className="font-mono font-semibold">{r.item_code}</TableCell>
+      <TableCell className="text-right font-mono">{r.quantidade}</TableCell>
+      <TableCell>{r.uc}</TableCell>
+      <TableCell>{r.lote}</TableCell>
+      <TableCell>{r.endereco}</TableCell>
+      <TableCell className="text-sm">
+        <div className="font-medium">{r.social_name}</div>
+        {r.full_name && r.full_name !== r.social_name && (
+          <div className="text-xs text-muted-foreground">{r.full_name}</div>
+        )}
+      </TableCell>
+      <TableCell className="text-sm whitespace-nowrap">{format(new Date(r.created_at), "dd/MM HH:mm")}</TableCell>
+    </TableRow>
+  );
+});
