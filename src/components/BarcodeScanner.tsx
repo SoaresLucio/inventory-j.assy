@@ -11,6 +11,12 @@ interface Props {
   onDetected?: (code: string) => void;
   /** Recebe os 3 campos parseados (UC, item, lote) */
   onParsed?: (parsed: ParsedQR) => void;
+  /** Estilo visual do botão de gatilho */
+  variant?: "item" | "endereco" | "default";
+  /** Texto auxiliar mostrado no rodapé do scanner */
+  hintText?: string;
+  /** Aria label do botão */
+  label?: string;
 }
 
 function beep() {
@@ -30,7 +36,7 @@ function beep() {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(80);
 }
 
-export function BarcodeScanner({ onDetected, onParsed }: Props) {
+export function BarcodeScanner({ onDetected, onParsed, variant = "default", hintText, label }: Props) {
   const [open, setOpen] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
@@ -181,9 +187,16 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
     }
   };
 
+  const btnClass =
+    variant === "item"
+      ? "h-12 w-12 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 border-primary"
+      : variant === "endereco"
+        ? "h-12 w-12 shrink-0 bg-warning text-foreground hover:bg-warning/90 border-warning"
+        : "h-12 w-12 shrink-0";
+
   return (
     <>
-      <Button type="button" variant="outline" size="lg" className="h-12 w-12 shrink-0" onClick={() => setOpen(true)} aria-label="Escanear">
+      <Button type="button" variant="outline" size="lg" className={btnClass} onClick={() => setOpen(true)} aria-label={label ?? "Escanear"}>
         <ScanLine className="h-5 w-5" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -219,7 +232,7 @@ export function BarcodeScanner({ onDetected, onParsed }: Props) {
             )}
           </div>
           <p className="text-xs text-muted-foreground text-center px-4 py-2">
-            Esperado: <span className="font-mono">UC(9 díg) · Item(11 díg) · Lote (variável)</span>
+            {hintText ?? <>Esperado: <span className="font-mono">UC(9 díg) · Item(11 díg) · Lote (variável)</span></>}
           </p>
         </DialogContent>
       </Dialog>

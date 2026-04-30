@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Clock, Hash, User, X, RefreshCw } from "lucide-react";
+import { AlertTriangle, Clock, Hash, User, X, RefreshCw, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export interface UCExisting {
@@ -13,6 +13,7 @@ export interface UCExisting {
   quantidade: number;
   created_at: string;
   user_social_name: string | null;
+  user_full_name: string | null;
 }
 
 interface Props {
@@ -66,9 +67,19 @@ export function UCRecurrenceAlert({ loading, existing, onOverride, onCancel }: P
           <span className="font-mono font-semibold">{existing.quantidade}</span>
         </div>
         <div className="flex items-center gap-2">
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-muted-foreground">Por:</span>
-          <span className="font-medium">{existing.user_social_name ?? "—"}</span>
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground">Endereço:</span>
+          <span className="font-mono">{existing.endereco}</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <User className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+          <div className="flex flex-col">
+            <span className="text-muted-foreground">Inventariado por:</span>
+            <span className="font-bold text-sm">{existing.user_full_name ?? existing.user_social_name ?? "—"}</span>
+            {existing.user_social_name && existing.user_full_name && existing.user_social_name !== existing.user_full_name && (
+              <span className="text-[11px] text-muted-foreground">login: {existing.user_social_name}</span>
+            )}
+          </div>
         </div>
       </div>
 
