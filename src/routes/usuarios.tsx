@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Key, Loader2, Plus, Search, Trash2, UserCog, Users } from "lucide-react";
+import { Key, Loader2, Plus, Search, Trash2, UserCog, Users, KeyRound, Check, X } from "lucide-react";
 import {
   createUser,
   deleteUser,
@@ -46,6 +46,8 @@ import {
   setUserRole,
 } from "@/server/users.functions";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
