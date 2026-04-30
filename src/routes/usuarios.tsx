@@ -128,7 +128,52 @@ function UsuariosPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao atualizar"),
   });
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  // Pedidos de redefinição de senha pendentes
+  const { data: resetRequests = [] } = useQuery({
+    queryKey: ["password-reset-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("password_reset_requests")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const rejectRequestMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("password_reset_requests")
+        .update({
+          status: "rejected",
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id ?? null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido rejeitado");
+      qc.invalidateQueries({ queryKey: ["password-reset-requests"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const handleResolveRequest = async (req: { id: string; social_name: string }) => {
+    // Encontra o usuário pelo nome social
+    const target = users.find(
+      (u) => u.social_name.toLowerCase() === req.social_name.toLowerCase(),
+    );
+    if (!target) {
+      toast.error(`Usuário "${req.social_name}" não encontrado`);
+      return;
+    }
+    setResetTarget({ id: target.id, name: target.social_name, requestId: req.id });
+  };
+
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     createMut.mutate({
