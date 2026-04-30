@@ -159,7 +159,7 @@ function AuthPage() {
                 >
                   Esqueci minha senha
                 </button>
-            </TabsContent>              </form>
+              </form>
             </TabsContent>
 
             <TabsContent value="signup">
