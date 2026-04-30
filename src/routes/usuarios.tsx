@@ -185,14 +185,25 @@ function UsuariosPage() {
     });
   };
 
-  const handleReset = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!resetTarget) return;
     const fd = new FormData(e.currentTarget);
-    resetMut.mutate({
+    await resetMut.mutateAsync({
       userId: resetTarget.id,
       password: String(fd.get("password") ?? ""),
     });
+    if (resetTarget.requestId) {
+      await supabase
+        .from("password_reset_requests")
+        .update({
+          status: "approved",
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id ?? null,
+        })
+        .eq("id", resetTarget.requestId);
+      qc.invalidateQueries({ queryKey: ["password-reset-requests"] });
+    }
   };
 
   return (
