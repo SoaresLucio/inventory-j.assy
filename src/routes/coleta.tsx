@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -119,6 +119,14 @@ function ColetaPage() {
     mutation.mutate(parsed.data);
   };
 
+  const handleScan = useCallback((p: { uc: string; item_code: string; lote: string }) => {
+    setUc(p.uc);
+    setItem(p.item_code);
+    setLote(p.lote);
+    toast.success("QR lido — UC, Item e Lote preenchidos");
+    setTimeout(() => itemRef.current?.focus(), 50);
+  }, []);
+
   return (
     <div className="space-y-4">
       {floatPts > 0 && (
@@ -163,15 +171,7 @@ function ColetaPage() {
                 required
                 className="h-12 text-base font-mono"
               />
-              <BarcodeScanner
-                onParsed={(p) => {
-                  setUc(p.uc);
-                  setItem(p.item_code);
-                  setLote(p.lote);
-                  toast.success("QR lido — UC, Item e Lote preenchidos");
-                  setTimeout(() => itemRef.current?.focus(), 50);
-                }}
-              />
+              <BarcodeScanner onParsed={handleScan} />
             </div>
             <p className="text-xs text-muted-foreground">
               Dica: use o <span className="font-semibold">QR Code</span> para preencher UC, Item e Lote automaticamente.
