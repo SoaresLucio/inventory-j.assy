@@ -8,6 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { Loader2, PackageCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -34,12 +44,42 @@ function AuthPage() {
   const { user, role, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       navigate({ to: role === "gestor" ? "/gestor" : "/coleta" });
     }
   }, [user, role, loading, navigate]);
+
+  const handleForgot = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const socialName = String(fd.get("socialName") ?? "").trim();
+    const reason = String(fd.get("reason") ?? "").trim() || null;
+    if (socialName.length < 2) return toast.error("Informe seu nome social.");
+    setForgotSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("password_reset_requests")
+        .insert({ social_name: socialName, reason });
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("Você já tem um pedido pendente. Aguarde o gestor.");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Pedido enviado! Procure um gestor para concluir.");
+      }
+      setForgotOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar pedido");
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -112,6 +152,13 @@ function AuthPage() {
                 <Button type="submit" disabled={submitting} className="w-full h-12 text-base">
                   {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="w-full text-sm text-primary hover:underline text-center"
+                >
+                  Esqueci minha senha
+                </button>
               </form>
             </TabsContent>
 
@@ -137,6 +184,32 @@ function AuthPage() {
           </Tabs>
         </div>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperar acesso</DialogTitle>
+            <DialogDescription>
+              Informe seu nome social. O gestor receberá o pedido e definirá uma nova senha para você.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgot} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="fg-social">Nome social (seu login)</Label>
+              <Input id="fg-social" name="socialName" required minLength={2} maxLength={60} placeholder="ex: joao_silva" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="fg-reason">Mensagem ao gestor (opcional)</Label>
+              <Textarea id="fg-reason" name="reason" maxLength={500} placeholder="Ex: esqueci a senha após troca de turno" rows={3} />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={forgotSubmitting} className="w-full">
+                {forgotSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar pedido"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

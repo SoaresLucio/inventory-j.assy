@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_requests: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          social_name: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          social_name: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          social_name?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

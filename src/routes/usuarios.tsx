@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Key, Loader2, Plus, Search, Trash2, UserCog, Users } from "lucide-react";
+import { Key, Loader2, Plus, Search, Trash2, UserCog, Users, KeyRound, Check, X } from "lucide-react";
 import {
   createUser,
   deleteUser,
@@ -46,6 +46,7 @@ import {
   setUserRole,
 } from "@/server/users.functions";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
@@ -66,7 +67,7 @@ function UsuariosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
-  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string; requestId?: string } | null>(null);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -127,6 +128,52 @@ function UsuariosPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao atualizar"),
   });
 
+  // Pedidos de redefinição de senha pendentes
+  const { data: resetRequests = [] } = useQuery({
+    queryKey: ["password-reset-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("password_reset_requests")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const rejectRequestMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("password_reset_requests")
+        .update({
+          status: "rejected",
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id ?? null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido rejeitado");
+      qc.invalidateQueries({ queryKey: ["password-reset-requests"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const handleResolveRequest = async (req: { id: string; social_name: string }) => {
+    // Encontra o usuário pelo nome social
+    const target = users.find(
+      (u) => u.social_name.toLowerCase() === req.social_name.toLowerCase(),
+    );
+    if (!target) {
+      toast.error(`Usuário "${req.social_name}" não encontrado`);
+      return;
+    }
+    setResetTarget({ id: target.id, name: target.social_name, requestId: req.id });
+  };
+
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -138,14 +185,25 @@ function UsuariosPage() {
     });
   };
 
-  const handleReset = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!resetTarget) return;
     const fd = new FormData(e.currentTarget);
-    resetMut.mutate({
+    await resetMut.mutateAsync({
       userId: resetTarget.id,
       password: String(fd.get("password") ?? ""),
     });
+    if (resetTarget.requestId) {
+      await supabase
+        .from("password_reset_requests")
+        .update({
+          status: "approved",
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id ?? null,
+        })
+        .eq("id", resetTarget.requestId);
+      qc.invalidateQueries({ queryKey: ["password-reset-requests"] });
+    }
   };
 
   return (
@@ -214,6 +272,53 @@ function UsuariosPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {resetRequests.length > 0 && (
+        <Card className="p-4 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 mb-3">
+            <KeyRound className="h-5 w-5 text-amber-600" />
+            <h2 className="font-semibold">
+              Pedidos de redefinição de senha ({resetRequests.length})
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {resetRequests.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center gap-3 justify-between p-3 rounded-lg bg-card border"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{r.social_name}</div>
+                  {r.reason && (
+                    <div className="text-sm text-muted-foreground truncate">{r.reason}</div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleResolveRequest({ id: r.id, social_name: r.social_name })
+                    }
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Definir nova senha
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={rejectRequestMut.isPending}
+                    onClick={() => rejectRequestMut.mutate(r.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="p-3">
         <div className="relative">
