@@ -152,8 +152,47 @@ function AuthPage() {
                 <Button type="submit" disabled={submitting} className="w-full h-12 text-base">
                   {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="w-full text-sm text-primary hover:underline text-center"
+                >
+                  Esqueci minha senha
+                </button>
               </form>
             </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperar acesso</DialogTitle>
+            <DialogDescription>
+              Informe seu nome social. O gestor receberá o pedido e definirá uma nova senha para você.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgot} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="fg-social">Nome social (seu login)</Label>
+              <Input id="fg-social" name="socialName" required minLength={2} maxLength={60} placeholder="ex: joao_silva" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="fg-reason">Mensagem ao gestor (opcional)</Label>
+              <Textarea id="fg-reason" name="reason" maxLength={500} placeholder="Ex: esqueci a senha após troca de turno" rows={3} />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={forgotSubmitting} className="w-full">
+                {forgotSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar pedido"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
