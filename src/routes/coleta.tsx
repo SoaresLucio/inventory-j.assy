@@ -12,8 +12,9 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { enqueueItem, flushQueue, pendingCount } from "@/lib/offline-queue";
-import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles } from "lucide-react";
+import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles, Lock, MapPin, Package } from "lucide-react";
 import { UCRecurrenceAlert, type UCExisting } from "@/components/UCRecurrenceAlert";
+import { parseEnderecoPayload } from "@/lib/qr-parse";
 
 export const Route = createFileRoute("/coleta")({
   component: () => (
@@ -40,12 +41,12 @@ const schema = z.object({
 function ColetaPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const itemRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [item, setItem] = useState("");
   const [uc, setUc] = useState("");
   const [lote, setLote] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [enderecoDisplay, setEnderecoDisplay] = useState("");
   const [quantidade, setQuantidade] = useState("1");
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [pending, setPending] = useState(0);
@@ -74,11 +75,6 @@ function ColetaPage() {
     };
   }, [qc]);
 
-  useEffect(() => {
-    itemRef.current?.focus();
-  }, []);
-
-  // Smart Check: consulta UC quando estabilizada (debounce simples)
   const ucTrimmed = uc.trim();
   const ucToCheck = ucTrimmed.length >= 6 && ucTrimmed !== dismissedUc ? ucTrimmed : "";
 
@@ -96,10 +92,9 @@ function ColetaPage() {
       if (error) throw error;
       const row = data?.[0];
       if (!row) return null;
-      // busca nome social do autor
       const { data: prof } = await supabase
         .from("profiles")
-        .select("social_name")
+        .select("social_name, full_name")
         .eq("id", row.user_id)
         .maybeSingle();
       return {
@@ -111,6 +106,7 @@ function ColetaPage() {
         quantidade: row.quantidade,
         created_at: row.created_at,
         user_social_name: prof?.social_name ?? null,
+        user_full_name: prof?.full_name ?? null,
       };
     },
   });
@@ -119,7 +115,6 @@ function ColetaPage() {
     mutationFn: async (vals: z.infer<typeof schema>) => {
       if (!user) throw new Error("Não autenticado");
 
-      // Modo "sobrescrever": atualiza o registro existente em vez de criar novo
       if (overrideId && navigator.onLine) {
         const { error } = await supabase
           .from("inventory_items")
@@ -164,23 +159,27 @@ function ColetaPage() {
         toast.success("Registro enviado!");
         qc.invalidateQueries({ queryKey: ["inventory"] });
       }
-      // Reset apenas Item, Lote, UC (após sobrescrever, limpa UC também)
+      // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
       setItem("");
       setLote("");
       setUc("");
       setQuantidade("1");
       setOverrideId(null);
       setDismissedUc(null);
-      setTimeout(() => itemRef.current?.focus(), 50);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar"),
   });
 
+  const itemReady = !!item.trim() && !!uc.trim() && !!lote.trim();
+  const enderecoReady = !!endereco.trim();
+  const canSave = itemReady && enderecoReady && !mutation.isPending;
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!itemReady) return toast.error("Escaneie primeiro o QR Code do ITEM");
+    if (!enderecoReady) return toast.error("Escaneie o QR Code do ENDEREÇO (Box)");
     const parsed = schema.safeParse({ item_code: item, uc, lote, endereco, quantidade });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    // Bloqueia salvar se houver UC duplicada não tratada
     if (existing && !overrideId && ucTrimmed !== dismissedUc) {
       toast.error("UC já cadastrada — escolha Sobrescrever ou Cancelar");
       return;
@@ -188,27 +187,44 @@ function ColetaPage() {
     mutation.mutate(parsed.data);
   };
 
-  const handleScan = useCallback((p: { uc: string; item_code: string; lote: string }) => {
+  const handleScanItem = useCallback((p: { uc: string; item_code: string; lote: string }) => {
     setUc(p.uc);
     setItem(p.item_code);
     setLote(p.lote);
     setOverrideId(null);
     setDismissedUc(null);
-    toast.success("QR lido — UC, Item e Lote preenchidos");
-    setTimeout(() => itemRef.current?.focus(), 50);
+    toast.success("Item lido — UC, Código e Lote preenchidos");
+  }, []);
+
+  const handleScanEndereco = useCallback((raw: string) => {
+    const parsed = parseEnderecoPayload(raw);
+    if (!parsed) {
+      toast.error("Endereço inválido. Esperado: 0E|GALPAOxxPRATxBOXxxA");
+      return;
+    }
+    setEndereco(parsed.canonical);
+    setEnderecoDisplay(parsed.display);
+    toast.success(`Endereço: ${parsed.display}`);
   }, []);
 
   const handleOverride = () => {
     if (!existing) return;
     setOverrideId(existing.id);
-    // Pré-preenche endereço se vazio (ajuda o usuário)
-    if (!endereco) setEndereco(existing.endereco);
+    if (!endereco) {
+      setEndereco(existing.endereco);
+      setEnderecoDisplay(existing.endereco);
+    }
     toast.info("Modo sobrescrever ativo — ao salvar, o registro será atualizado");
   };
 
   const handleCancelExisting = () => {
     setDismissedUc(ucTrimmed);
     setOverrideId(null);
+  };
+
+  const clearEndereco = () => {
+    setEndereco("");
+    setEnderecoDisplay("");
   };
 
   const showAlert = !!ucToCheck && (checkingUc || !!existing);
@@ -251,77 +267,95 @@ function ColetaPage() {
       )}
 
       <Card className="p-5 shadow-[var(--shadow-card)]">
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="item">Código do item</Label>
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+          {/* PASSO 1 — Item */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${itemReady ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>1</span>
+                <Label className="text-sm font-semibold flex items-center gap-1.5">
+                  <Package className="h-4 w-4" /> Escanear ITEM
+                </Label>
+              </div>
+              {itemReady && <CheckCircle2 className="h-4 w-4 text-primary" />}
+            </div>
             <div className="flex gap-2">
-              <Input
-                ref={itemRef}
-                id="item"
-                value={item}
-                onChange={(e) => setItem(e.target.value)}
-                placeholder="Escaneie ou digite"
-                inputMode="text"
-                autoComplete="off"
-                required
-                className="h-12 text-base font-mono"
+              <BarcodeScanner
+                onParsed={handleScanItem}
+                variant="item"
+                label="Escanear item"
+                hintText="Esperado: UC(9 díg) · Item(11 díg) · Lote"
               />
-              <BarcodeScanner onParsed={handleScan} />
+              <div className="flex-1 grid grid-cols-3 gap-2">
+                <ReadOnlyField label="UC" value={uc} placeholder="—" />
+                <ReadOnlyField label="Item" value={item} placeholder="—" mono />
+                <ReadOnlyField label="Lote" value={lote} placeholder="—" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Dica: use o <span className="font-semibold">QR Code</span> para preencher UC, Item e Lote automaticamente.
+          </section>
+
+          {/* PASSO 2 — Endereço */}
+          <section className="space-y-3 pt-1 border-t">
+            <div className="flex items-center justify-between pt-3">
+              <div className="flex items-center gap-2">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${enderecoReady ? "bg-warning text-foreground" : "bg-muted text-muted-foreground"}`}>2</span>
+                <Label className="text-sm font-semibold flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" /> Escanear LOCALIZAÇÃO (Box)
+                </Label>
+              </div>
+              {enderecoReady && <CheckCircle2 className="h-4 w-4 text-warning" />}
+            </div>
+            <div className="flex gap-2">
+              <BarcodeScanner
+                onDetected={handleScanEndereco}
+                variant="endereco"
+                label="Escanear endereço"
+                hintText="Esperado: 0E|GALPAOxxPRATxBOXxxA"
+              />
+              <div className="flex-1">
+                <Input
+                  value={enderecoDisplay || endereco}
+                  readOnly
+                  disabled
+                  placeholder="Toque na câmera laranja"
+                  className="h-12 text-base font-mono cursor-not-allowed bg-muted/40"
+                  aria-label="Endereço escaneado"
+                />
+              </div>
+              {endereco && (
+                <Button type="button" variant="ghost" size="sm" className="h-12 px-2" onClick={clearEndereco} aria-label="Limpar endereço">
+                  ✕
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Lock className="h-3 w-3" /> Digitação manual bloqueada — leitura obrigatória do QR.
             </p>
+          </section>
+
+          {/* Quantidade */}
+          <div className="space-y-2">
+            <Label htmlFor="quantidade">Quantidade</Label>
+            <Input
+              id="quantidade"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              required
+              className="h-12 text-base font-mono text-center"
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="uc">UC</Label>
-              <Input
-                id="uc"
-                value={uc}
-                onChange={(e) => {
-                  setUc(e.target.value);
-                  setOverrideId(null);
-                  setDismissedUc(null);
-                }}
-                required
-                className="h-12 text-base"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lote">Lote</Label>
-              <Input id="lote" value={lote} onChange={(e) => setLote(e.target.value)} required className="h-12 text-base" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-[1fr_110px] gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="endereco">Endereço (galpão)</Label>
-              <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="ex: A-12-03" required className="h-12 text-base" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantidade">Quantidade</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                step={1}
-                value={quantidade}
-                onChange={(e) => setQuantidade(e.target.value)}
-                required
-                className="h-12 text-base font-mono text-center"
-              />
-            </div>
-          </div>
-
-          <Button type="submit" disabled={mutation.isPending} className="w-full h-14 text-base shadow-[var(--shadow-elevated)]">
+          <Button type="submit" disabled={!canSave} className="w-full h-14 text-base shadow-[var(--shadow-elevated)]">
             {mutation.isPending ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
                 <Send className="h-5 w-5 mr-2" />
-                {overrideId ? "Sobrescrever registro" : "Salvar e enviar"}
+                {overrideId ? "Sobrescrever registro" : canSave ? "Salvar e enviar" : "Escaneie ITEM e ENDEREÇO"}
               </>
             )}
           </Button>
@@ -334,6 +368,17 @@ function ColetaPage() {
           )}
         </form>
       </Card>
+    </div>
+  );
+}
+
+function ReadOnlyField({ label, value, placeholder, mono }: { label: string; value: string; placeholder?: string; mono?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</span>
+      <div className={`h-10 px-2.5 flex items-center rounded-md border bg-muted/40 text-sm ${mono ? "font-mono" : ""} ${value ? "text-foreground" : "text-muted-foreground"} truncate`}>
+        {value || placeholder}
+      </div>
     </div>
   );
 }
