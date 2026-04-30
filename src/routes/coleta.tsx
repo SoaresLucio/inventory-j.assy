@@ -119,6 +119,14 @@ function ColetaPage() {
     mutation.mutate(parsed.data);
   };
 
+  const handleScan = useCallback((p: { uc: string; item_code: string; lote: string }) => {
+    setUc(p.uc);
+    setItem(p.item_code);
+    setLote(p.lote);
+    toast.success("QR lido — UC, Item e Lote preenchidos");
+    setTimeout(() => itemRef.current?.focus(), 50);
+  }, []);
+
   return (
     <div className="space-y-4">
       {floatPts > 0 && (
