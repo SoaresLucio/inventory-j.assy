@@ -44,12 +44,42 @@ function AuthPage() {
   const { user, role, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       navigate({ to: role === "gestor" ? "/gestor" : "/coleta" });
     }
   }, [user, role, loading, navigate]);
+
+  const handleForgot = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const socialName = String(fd.get("socialName") ?? "").trim();
+    const reason = String(fd.get("reason") ?? "").trim() || null;
+    if (socialName.length < 2) return toast.error("Informe seu nome social.");
+    setForgotSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("password_reset_requests")
+        .insert({ social_name: socialName, reason });
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("Você já tem um pedido pendente. Aguarde o gestor.");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Pedido enviado! Procure um gestor para concluir.");
+      }
+      setForgotOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar pedido");
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
