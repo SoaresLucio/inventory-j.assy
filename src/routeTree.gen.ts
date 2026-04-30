@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as ItensPorBoxRouteImport } from './routes/itens-por-box'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as GestorRouteImport } from './routes/gestor'
 import { Route as ColetaRouteImport } from './routes/coleta'
@@ -25,6 +26,11 @@ const UsuariosRoute = UsuariosRouteImport.update({
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ItensPorBoxRoute = ItensPorBoxRouteImport.update({
+  id: '/itens-por-box',
+  path: '/itens-por-box',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoricoRoute = HistoricoRouteImport.update({
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/coleta': typeof ColetaRoute
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
+  '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/coleta'
     | '/gestor'
     | '/historico'
+    | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/coleta'
     | '/gestor'
     | '/historico'
+    | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/coleta'
     | '/gestor'
     | '/historico'
+    | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   ColetaRoute: typeof ColetaRoute
   GestorRoute: typeof GestorRoute
   HistoricoRoute: typeof HistoricoRoute
+  ItensPorBoxRoute: typeof ItensPorBoxRoute
   RankingRoute: typeof RankingRoute
   UsuariosRoute: typeof UsuariosRoute
 }
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/itens-por-box': {
+      id: '/itens-por-box'
+      path: '/itens-por-box'
+      fullPath: '/itens-por-box'
+      preLoaderRoute: typeof ItensPorBoxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/historico': {
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColetaRoute: ColetaRoute,
   GestorRoute: GestorRoute,
   HistoricoRoute: HistoricoRoute,
+  ItensPorBoxRoute: ItensPorBoxRoute,
   RankingRoute: RankingRoute,
   UsuariosRoute: UsuariosRoute,
 }
