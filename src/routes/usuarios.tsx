@@ -273,6 +273,53 @@ function UsuariosPage() {
         </Dialog>
       </div>
 
+      {resetRequests.length > 0 && (
+        <Card className="p-4 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 mb-3">
+            <KeyRound className="h-5 w-5 text-amber-600" />
+            <h2 className="font-semibold">
+              Pedidos de redefinição de senha ({resetRequests.length})
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {resetRequests.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center gap-3 justify-between p-3 rounded-lg bg-card border"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{r.social_name}</div>
+                  {r.reason && (
+                    <div className="text-sm text-muted-foreground truncate">{r.reason}</div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      handleResolveRequest({ id: r.id, social_name: r.social_name })
+                    }
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Definir nova senha
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={rejectRequestMut.isPending}
+                    onClick={() => rejectRequestMut.mutate(r.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
