@@ -174,6 +174,7 @@ function UsuariosPage() {
     setResetTarget({ id: target.id, name: target.social_name, requestId: req.id });
   };
 
+  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     createMut.mutate({
