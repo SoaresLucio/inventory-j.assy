@@ -169,7 +169,7 @@ function GestorPage() {
                 <TableHead>UC</TableHead>
                 <TableHead>Lote</TableHead>
                 <TableHead>Endereço</TableHead>
-                <TableHead>Inventarista</TableHead>
+                <TableHead>Responsável (Nome Completo)</TableHead>
                 <TableHead>Data/Hora</TableHead>
               </TableRow>
             </TableHeader>
@@ -198,9 +198,9 @@ const InventoryRowItem = memo(function InventoryRowItem({ row: r }: { row: Row }
       <TableCell>{r.lote}</TableCell>
       <TableCell>{r.endereco}</TableCell>
       <TableCell className="text-sm">
-        <div className="font-medium">{r.social_name}</div>
-        {r.full_name && r.full_name !== r.social_name && (
-          <div className="text-xs text-muted-foreground">{r.full_name}</div>
+        <div className="font-bold">{r.full_name || r.social_name}</div>
+        {r.social_name && r.full_name && r.social_name !== r.full_name && (
+          <div className="text-[11px] text-muted-foreground">login: {r.social_name}</div>
         )}
       </TableCell>
       <TableCell className="text-sm whitespace-nowrap">{format(new Date(r.created_at), "dd/MM HH:mm")}</TableCell>
