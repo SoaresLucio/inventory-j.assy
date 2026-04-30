@@ -25,7 +25,6 @@ export const Route = createFileRoute("/ranking")({
 interface RankingRow {
   user_id: string;
   social_name: string;
-  full_name: string;
   points: number;
   items_today: number;
   items_week: number;
@@ -37,13 +36,10 @@ function RankingPage() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["ranking"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ranking_view" as never)
-        .select("*")
-        .order("points", { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc("get_ranking" as never);
       if (error) throw error;
-      return (data as unknown as RankingRow[]).filter((r) => r.points > 0 || r.items_total > 0);
+      const rows = (data as unknown as RankingRow[]) ?? [];
+      return rows.filter((r) => r.points > 0 || r.items_total > 0).slice(0, 100);
     },
     refetchInterval: 30_000,
   });
