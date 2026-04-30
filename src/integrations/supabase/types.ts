@@ -132,7 +132,6 @@ export type Database = {
     Views: {
       ranking_view: {
         Row: {
-          full_name: string | null
           items_today: number | null
           items_total: number | null
           items_week: number | null
