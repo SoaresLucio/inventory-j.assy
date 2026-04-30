@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
 import { ProtectedShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Download, Package } from "lucide-react";
 import { toast } from "sonner";
+import { exportInventoryXlsx, xlsxFilename } from "@/lib/export-xlsx";
 
 export const Route = createFileRoute("/historico")({
   component: () => (
@@ -41,37 +41,26 @@ function HistoricoPage() {
     },
   });
 
-  const exportXlsx = () => {
+  const exportXlsx = async () => {
     if (!data || data.length === 0) {
       toast.error("Sem registros para exportar");
       return;
     }
-    const ordered = [...data].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const sheet = XLSX.utils.json_to_sheet(
-      ordered.map((r, i) => ({
-        "#": i + 1,
-        "Inventarista (login)": profile?.social_name ?? "",
-        "Nome completo": profile?.full_name ?? "",
-        "Código do Item": r.item_code,
-        "Quantidade": r.quantidade,
-        "UC": r.uc,
-        "Lote": r.lote,
-        "Endereço": r.endereco,
-        "Data": format(new Date(r.created_at), "dd/MM/yyyy"),
-        "Hora": format(new Date(r.created_at), "HH:mm:ss"),
-        "ID do registro": r.id,
-      })),
-    );
-    sheet["!cols"] = [
-      { wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 16 }, { wch: 10 },
-      { wch: 12 }, { wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 38 },
-    ];
-    sheet["!autofilter"] = { ref: `A1:K${ordered.length + 1}` };
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, sheet, "Meu Inventário");
-    const slug = (profile?.social_name ?? "inventarista").replace(/[^a-z0-9_-]/gi, "_");
-    XLSX.writeFile(wb, `inventario_${slug}_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-    toast.success(`Planilha gerada · ${ordered.length} registros`);
+    try {
+      const slug = (profile?.social_name ?? "inventarista").replace(/[^a-z0-9_-]/gi, "_");
+      const n = await exportInventoryXlsx({
+        rows: data,
+        filename: xlsxFilename(`inventario_${slug}`),
+        sheetName: "Meu Inventário",
+        fixedUser: {
+          social_name: profile?.social_name ?? "",
+          full_name: profile?.full_name ?? "",
+        },
+      });
+      toast.success(`Planilha gerada · ${n} registros`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar");
+    }
   };
 
   return (
