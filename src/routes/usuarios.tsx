@@ -67,7 +67,7 @@ function UsuariosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
-  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string; requestId?: string } | null>(null);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
