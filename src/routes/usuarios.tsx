@@ -47,7 +47,6 @@ import {
 } from "@/server/users.functions";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
