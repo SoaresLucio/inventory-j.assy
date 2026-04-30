@@ -83,3 +83,42 @@ export function parseQrPayload(raw: string): ParsedQR | null {
 
   return null;
 }
+
+// ---------------- Endereço logístico ----------------
+//
+// Formato típico: "0E|GALPAO08PRAT6BOX07A"
+//   • Prefixo opcional "0E|" (ou variações) deve ser ignorado.
+//   • Galpão: 1-2 dígitos após "GALPAO".
+//   • Prateleira: 1-2 dígitos após "PRAT".
+//   • Box: 1-3 caracteres alfanuméricos (ex.: "07A") após "BOX".
+
+export interface ParsedEndereco {
+  galpao: string;       // ex.: "08"
+  prateleira: string;   // ex.: "6"
+  box: string;          // ex.: "07A"
+  /** Forma normalizada usada como chave no banco (campo `endereco`) */
+  canonical: string;    // ex.: "GALPAO08-PRAT6-BOX07A"
+  /** Apresentação amigável */
+  display: string;      // ex.: "Galpão 08 · Prat 6 · Box 07A"
+}
+
+const ENDERECO_RE = /GALPAO\s*(\d{1,2})\s*PRAT\s*(\d{1,2})\s*BOX\s*([A-Z0-9]{1,4})/i;
+
+export function parseEnderecoPayload(raw: string): ParsedEndereco | null {
+  if (!raw) return null;
+  // remove prefixo tipo "0E|" e espaços
+  const cleaned = raw.trim().replace(/^[0-9A-Z]{1,3}\s*\|\s*/i, "").toUpperCase();
+  const m = cleaned.match(ENDERECO_RE);
+  if (!m) return null;
+  const galpao = m[1].padStart(2, "0");
+  const prateleira = String(parseInt(m[2], 10));
+  const box = m[3].toUpperCase();
+  return {
+    galpao,
+    prateleira,
+    box,
+    canonical: `GALPAO${galpao}-PRAT${prateleira}-BOX${box}`,
+    display: `Galpão ${galpao} · Prat ${prateleira} · Box ${box}`,
+  };
+}
+
