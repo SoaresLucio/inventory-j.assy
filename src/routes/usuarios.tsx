@@ -69,10 +69,11 @@ function UsuariosPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string; requestId?: string } | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: usersData, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => listUsers(),
   });
+  const users = Array.isArray(usersData) ? usersData : [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

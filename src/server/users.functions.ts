@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-client-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const socialToEmail = (social: string) =>
@@ -18,7 +19,7 @@ async function assertGestor(supabase: any, userId: string) {
 }
 
 export const listUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertGestor(context.supabase, context.userId);
 
@@ -71,7 +72,7 @@ const createSchema = z.object({
 });
 
 export const createUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertGestor(context.supabase, context.userId);
@@ -104,7 +105,7 @@ export const createUser = createServerFn({ method: "POST" })
 const deleteSchema = z.object({ userId: z.string().uuid() });
 
 export const deleteUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => deleteSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertGestor(context.supabase, context.userId);
@@ -122,7 +123,7 @@ const resetSchema = z.object({
 });
 
 export const resetUserPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => resetSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertGestor(context.supabase, context.userId);
@@ -139,7 +140,7 @@ const roleSchema = z.object({
 });
 
 export const setUserRole = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((input: unknown) => roleSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertGestor(context.supabase, context.userId);
