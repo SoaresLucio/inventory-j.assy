@@ -130,7 +130,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ranking_view: {
+        Row: {
+          items_today: number | null
+          items_total: number | null
+          items_week: number | null
+          points: number | null
+          social_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_ranking: {
