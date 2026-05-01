@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-client-middleware";
 import { sendPushToAll } from "./push.server";
 
 export const getVapidPublicKey = createServerFn({ method: "GET" }).handler(async () => {
@@ -7,7 +8,7 @@ export const getVapidPublicKey = createServerFn({ method: "GET" }).handler(async
 });
 
 export const sendTestPush = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .handler(async ({ context }) => {
     // Apenas gestores podem disparar teste
     const { supabase, userId } = context;
