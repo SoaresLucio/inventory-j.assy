@@ -133,55 +133,29 @@ function AuthPage() {
         </div>
 
         <div className="bg-card rounded-2xl border shadow-[var(--shadow-card)] p-6">
-          <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="si-social">Nome social</Label>
-                  <Input id="si-social" name="socialName" autoComplete="username" placeholder="ex: joao_silva" required className="h-12 text-base" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="si-pass">Senha</Label>
-                  <Input id="si-pass" name="password" type="password" autoComplete="current-password" required className="h-12 text-base" />
-                </div>
-                <Button type="submit" disabled={submitting} className="w-full h-12 text-base">
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => setForgotOpen(true)}
-                  className="w-full text-sm text-primary hover:underline text-center"
-                >
-                  Esqueci minha senha
-                </button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="su-name">Nome completo</Label>
-                  <Input id="su-name" name="fullName" autoComplete="name" required className="h-12 text-base" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="su-social">Nome social (login)</Label>
-                  <Input id="su-social" name="socialName" autoComplete="username" placeholder="letras, números, _" required className="h-12 text-base" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="su-pass">Senha (mín. 6 caracteres)</Label>
-                  <Input id="su-pass" name="password" type="password" autoComplete="new-password" required className="h-12 text-base" />
-                </div>
-                <Button type="submit" disabled={submitting} className="w-full h-12 text-base">
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Criar conta"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="si-social">Nome social</Label>
+              <Input id="si-social" name="socialName" autoComplete="username" placeholder="ex: joao_silva" required className="h-12 text-base" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="si-pass">Senha</Label>
+              <Input id="si-pass" name="password" type="password" autoComplete="current-password" required className="h-12 text-base" />
+            </div>
+            <Button type="submit" disabled={submitting} className="w-full h-12 text-base">
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="w-full text-sm text-primary hover:underline text-center"
+            >
+              Esqueci minha senha
+            </button>
+            <p className="text-xs text-muted-foreground text-center pt-2 border-t">
+              Novas contas são criadas apenas pelo gestor.
+            </p>
+          </form>
         </div>
       </div>
 
