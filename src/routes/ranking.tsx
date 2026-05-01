@@ -102,8 +102,13 @@ function RankingPage() {
                     <div className="text-xs font-semibold mt-1">{r.points} pts</div>
                   </Card>
                   <div className="text-center">
-                    <div className="text-sm font-semibold truncate max-w-[110px]">{r.social_name}</div>
-                    <div className="text-[11px] text-muted-foreground">Hoje: {r.items_today}</div>
+                    <div className="text-sm font-bold truncate max-w-[120px]" title={r.full_name}>
+                      {r.full_name || r.social_name}
+                    </div>
+                    {r.full_name && r.social_name && r.full_name !== r.social_name && (
+                      <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">@{r.social_name}</div>
+                    )}
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Hoje: {r.items_today}</div>
                   </div>
                 </div>
               );
@@ -120,8 +125,13 @@ function RankingPage() {
                     {i + 4}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{r.social_name} {isMe && <span className="text-xs text-primary">(você)</span>}</div>
-                    <div className="text-xs text-muted-foreground">Hoje {r.items_today} · Semana {r.items_week} · Total {r.items_total}</div>
+                    <div className="font-bold truncate">
+                      {r.full_name || r.social_name} {isMe && <span className="text-xs text-primary">(você)</span>}
+                    </div>
+                    {r.full_name && r.social_name && r.full_name !== r.social_name && (
+                      <div className="text-[11px] text-muted-foreground truncate">@{r.social_name}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-0.5">Hoje {r.items_today} · Semana {r.items_week} · Total {r.items_total}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-display font-bold text-primary">{r.points}</div>

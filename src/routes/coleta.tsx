@@ -115,33 +115,18 @@ function ColetaPage() {
     mutationFn: async (vals: z.infer<typeof schema>) => {
       if (!user) throw new Error("Não autenticado");
 
-      if (overrideId && navigator.onLine) {
-        const { error } = await supabase
-          .from("inventory_items")
-          .update({
-            item_code: vals.item_code,
-            uc: vals.uc,
-            lote: vals.lote,
-            endereco: vals.endereco,
-            quantidade: vals.quantidade,
-          })
-          .eq("id", overrideId);
-        if (error) throw error;
-        return { offline: false, override: true };
-      }
-
       const client_id = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const payload = { ...vals, user_id: user.id, client_id, created_at: new Date().toISOString() };
       if (!navigator.onLine) {
         await enqueueItem(payload);
-        return { offline: true, override: false };
+        return { offline: true, recount: !!overrideId };
       }
       const { error } = await supabase.from("inventory_items").insert(payload);
       if (error) {
         await enqueueItem(payload);
-        return { offline: true, override: false };
+        return { offline: true, recount: !!overrideId };
       }
-      return { offline: false, override: false };
+      return { offline: false, recount: !!overrideId };
     },
     onSuccess: (res) => {
       setLastCount((c) => c + 1);
@@ -151,8 +136,8 @@ function ColetaPage() {
       if (res.offline) {
         toast.info("Salvo offline. Sincroniza ao voltar a conexão.");
         refreshPending();
-      } else if (res.override) {
-        toast.success("Registro atualizado (sobrescrito)");
+      } else if (res.recount) {
+        toast.success("Recontagem registrada (auditoria imutável preservada)");
         qc.invalidateQueries({ queryKey: ["inventory"] });
         qc.invalidateQueries({ queryKey: ["uc-check"] });
       } else {
@@ -214,7 +199,7 @@ function ColetaPage() {
       setEndereco(existing.endereco);
       setEnderecoDisplay(existing.endereco);
     }
-    toast.info("Modo sobrescrever ativo — ao salvar, o registro será atualizado");
+    toast.info("Recontagem ativa — um NOVO registro será criado (auditoria preserva o anterior)");
   };
 
   const handleCancelExisting = () => {
@@ -355,7 +340,7 @@ function ColetaPage() {
             ) : (
               <>
                 <Send className="h-5 w-5 mr-2" />
-                {overrideId ? "Sobrescrever registro" : canSave ? "Salvar e enviar" : "Escaneie ITEM e ENDEREÇO"}
+                {overrideId ? "Salvar recontagem" : canSave ? "Salvar e enviar" : "Escaneie ITEM e ENDEREÇO"}
               </>
             )}
           </Button>
