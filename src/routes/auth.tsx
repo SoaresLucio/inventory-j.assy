@@ -41,7 +41,7 @@ const signUpSchema = z.object({
 });
 
 function AuthPage() {
-  const { user, role, loading, signIn, signUp } = useAuth();
+  const { user, role, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
