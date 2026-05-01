@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useAuth } from "@/lib/auth";
 import { Loader2, PackageCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
