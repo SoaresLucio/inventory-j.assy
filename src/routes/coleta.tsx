@@ -340,7 +340,7 @@ function ColetaPage() {
             ) : (
               <>
                 <Send className="h-5 w-5 mr-2" />
-                {overrideId ? "Sobrescrever registro" : canSave ? "Salvar e enviar" : "Escaneie ITEM e ENDEREÇO"}
+                {overrideId ? "Salvar recontagem" : canSave ? "Salvar e enviar" : "Escaneie ITEM e ENDEREÇO"}
               </>
             )}
           </Button>

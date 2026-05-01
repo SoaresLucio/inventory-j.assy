@@ -89,7 +89,7 @@ export function UCRecurrenceAlert({ loading, existing, onOverride, onCancel }: P
         </Button>
         <Button size="sm" className="flex-1" onClick={onOverride}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Sobrescrever
+          Recontar
         </Button>
       </div>
     </Card>
