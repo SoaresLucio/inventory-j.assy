@@ -17,6 +17,7 @@ import { Route as GestorRouteImport } from './routes/gestor'
 import { Route as ColetaRouteImport } from './routes/coleta'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicHooksPushReminderRouteImport } from './routes/api/public/hooks/push-reminder'
 
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
@@ -58,6 +59,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksPushReminderRoute =
+  ApiPublicHooksPushReminderRouteImport.update({
+    id: '/api/public/hooks/push-reminder',
+    path: '/api/public/hooks/push-reminder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
+  '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +86,7 @@ export interface FileRoutesByTo {
   '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
+  '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +98,7 @@ export interface FileRoutesById {
   '/itens-por-box': typeof ItensPorBoxRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
+  '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
+    | '/api/public/hooks/push-reminder'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
+    | '/api/public/hooks/push-reminder'
   id:
     | '__root__'
     | '/'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
     | '/itens-por-box'
     | '/ranking'
     | '/usuarios'
+    | '/api/public/hooks/push-reminder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +145,7 @@ export interface RootRouteChildren {
   ItensPorBoxRoute: typeof ItensPorBoxRoute
   RankingRoute: typeof RankingRoute
   UsuariosRoute: typeof UsuariosRoute
+  ApiPublicHooksPushReminderRoute: typeof ApiPublicHooksPushReminderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/push-reminder': {
+      id: '/api/public/hooks/push-reminder'
+      path: '/api/public/hooks/push-reminder'
+      fullPath: '/api/public/hooks/push-reminder'
+      preLoaderRoute: typeof ApiPublicHooksPushReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,16 +225,8 @@ const rootRouteChildren: RootRouteChildren = {
   ItensPorBoxRoute: ItensPorBoxRoute,
   RankingRoute: RankingRoute,
   UsuariosRoute: UsuariosRoute,
+  ApiPublicHooksPushReminderRoute: ApiPublicHooksPushReminderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

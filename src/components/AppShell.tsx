@@ -3,6 +3,7 @@ import { ClipboardList, History, LayoutDashboard, LogOut, MapPin, PackageCheck, 
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { EnablePushButton } from "@/components/EnablePushButton";
 import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -48,6 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <span className="hidden sm:block text-sm text-muted-foreground">{profile?.social_name}</span>
+            <EnablePushButton />
             <InstallPWAButton />
             <Button variant="ghost" size="sm" onClick={handleLogout} aria-label="Sair">
               <LogOut className="h-4 w-4" />
