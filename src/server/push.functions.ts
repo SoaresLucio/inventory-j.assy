@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-client-middleware";
-import { sendPushToAll } from "./push.server";
 
 export const getVapidPublicKey = createServerFn({ method: "GET" }).handler(async () => {
   return { publicKey: process.env.VAPID_PUBLIC_KEY ?? "" };
@@ -18,6 +17,8 @@ export const sendTestPush = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     const isGestor = roles?.some((r) => r.role === "gestor");
     if (!isGestor) throw new Error("Apenas gestores podem enviar push de teste");
+    // Dynamic import keeps web-push (Node-only) out of the client bundle
+    const { sendPushToAll } = await import("./push.server");
     const result = await sendPushToAll({
       title: "🔔 Teste de notificação",
       body: "As notificações do J.assy estão funcionando!",
