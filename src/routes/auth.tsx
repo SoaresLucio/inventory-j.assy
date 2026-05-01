@@ -34,11 +34,6 @@ const signInSchema = z.object({
   password: z.string().min(6, "Mínimo 6 caracteres").max(100),
 });
 
-const signUpSchema = z.object({
-  fullName: z.string().trim().min(3, "Informe seu nome completo").max(120),
-  socialName: z.string().trim().min(2).max(60).regex(/^[a-zA-Z0-9_]+$/, "Use letras, números ou _"),
-  password: z.string().min(6, "Mínimo 6 caracteres").max(100),
-});
 
 function AuthPage() {
   const { user, role, loading, signIn } = useAuth();
