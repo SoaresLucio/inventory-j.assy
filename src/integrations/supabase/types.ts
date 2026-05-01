@@ -107,6 +107,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_sent_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_sent_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_sent_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -132,6 +165,7 @@ export type Database = {
     Views: {
       ranking_view: {
         Row: {
+          full_name: string | null
           items_today: number | null
           items_total: number | null
           items_week: number | null
@@ -146,6 +180,7 @@ export type Database = {
       get_ranking: {
         Args: never
         Returns: {
+          full_name: string
           items_today: number
           items_total: number
           items_week: number
