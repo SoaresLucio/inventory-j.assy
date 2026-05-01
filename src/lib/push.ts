@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-
-export const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+import { getVapidPublicKey } from "@/server/push.functions";
 
 function urlBase64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -31,8 +30,15 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   return reg;
 }
 
-export async function subscribePush(publicKey: string) {
+export async function fetchVapidPublicKey(): Promise<string> {
+  const { publicKey } = await getVapidPublicKey();
+  if (!publicKey) throw new Error("VAPID public key não configurada no servidor");
+  return publicKey;
+}
+
+export async function subscribePush(publicKey?: string) {
   if (!isPushSupported()) throw new Error("Push não suportado neste dispositivo");
+  const key = publicKey ?? (await fetchVapidPublicKey());
   const perm = await Notification.requestPermission();
   if (perm !== "granted") throw new Error("Permissão negada");
   const reg = await registerServiceWorker();
@@ -40,7 +46,7 @@ export async function subscribePush(publicKey: string) {
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
+      applicationServerKey: urlBase64ToUint8Array(key),
     });
   }
   const json = sub.toJSON();
