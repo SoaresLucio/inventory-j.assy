@@ -10,12 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Filter, Package, Users } from "lucide-react";
+import { Bell, Download, Filter, Package, Users } from "lucide-react";
 import { toast } from "sonner";
 import { exportInventoryXlsx, xlsxFilename, type InventoryRow } from "@/lib/export-xlsx";
 import { useServerFn } from "@tanstack/react-start";
 import { sendTestPush } from "@/server/push.functions";
-import { Bell } from "lucide-react";
 
 export const Route = createFileRoute("/gestor")({
   component: () => (
