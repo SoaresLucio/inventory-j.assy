@@ -13,6 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Download, Filter, Package, Users } from "lucide-react";
 import { toast } from "sonner";
 import { exportInventoryXlsx, xlsxFilename, type InventoryRow } from "@/lib/export-xlsx";
+import { useServerFn } from "@tanstack/react-start";
+import { sendTestPush } from "@/server/push.functions";
+import { Bell } from "lucide-react";
 
 export const Route = createFileRoute("/gestor")({
   component: () => (
@@ -36,6 +39,8 @@ function GestorPage() {
   const [userFilter, setUserFilter] = useState<string>("all");
   const [enderecoFilter, setEnderecoFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const sendTest = useServerFn(sendTestPush);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["inventory", "all"],
@@ -101,9 +106,30 @@ function GestorPage() {
           <h1 className="text-2xl font-bold">Painel do Gestor</h1>
           <p className="text-sm text-muted-foreground">Supervisão e auditoria de coletas</p>
         </div>
-        <Button onClick={exportXlsx} className="h-11 shadow-[var(--shadow-elevated)]">
-          <Download className="h-4 w-4 mr-2" /> Exportar Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11"
+            disabled={pushBusy}
+            onClick={async () => {
+              setPushBusy(true);
+              try {
+                const r = await sendTest();
+                toast.success(`Push enviado · ${r.sent} entregues, ${r.removed} removidos, ${r.failed} falharam`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Erro no push");
+              } finally {
+                setPushBusy(false);
+              }
+            }}
+          >
+            <Bell className="h-4 w-4 mr-2" /> Testar push
+          </Button>
+          <Button onClick={exportXlsx} className="h-11 shadow-[var(--shadow-elevated)]">
+            <Download className="h-4 w-4 mr-2" /> Exportar Excel
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
