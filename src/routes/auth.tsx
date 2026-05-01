@@ -95,27 +95,6 @@ function AuthPage() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const parsed = signUpSchema.safeParse({
-      fullName: fd.get("fullName"),
-      socialName: fd.get("socialName"),
-      password: fd.get("password"),
-    });
-    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    setSubmitting(true);
-    try {
-      await signUp(parsed.data);
-      toast.success("Cadastro criado! Entrando...");
-      await signIn(parsed.data.socialName, parsed.data.password);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro no cadastro");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-accent/30">
       <div className="w-full max-w-md">
