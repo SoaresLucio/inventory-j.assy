@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "vite build --config vite.vercel.config.ts",
+  "framework": null,
+  "installCommand": "npm install --legacy-peer-deps"
+}
