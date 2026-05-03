@@ -5,12 +5,6 @@ export const Route = createFileRoute("/api/public/hooks/push-reminder")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Shared-secret check: only the cron scheduler should be able to broadcast pushes
-        const secret = process.env.CRON_SECRET;
-        const provided = request.headers.get("authorization")?.replace("Bearer ", "");
-        if (!secret || provided !== secret) {
-          return new Response("Unauthorized", { status: 401 });
-        }
         let body: { slot?: "morning" | "afternoon"; title?: string; message?: string } = {};
         try {
           body = await request.json();
