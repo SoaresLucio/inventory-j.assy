@@ -177,6 +177,16 @@ export type Database = {
       }
     }
     Functions: {
+      check_uc_duplicate: {
+        Args: { _uc: string }
+        Returns: {
+          exists_already: boolean
+          last_created_at: string
+          last_full_name: string
+          last_social_name: string
+          total_count: number
+        }[]
+      }
       get_ranking: {
         Args: never
         Returns: {
