@@ -31,8 +31,8 @@ export const Route = createFileRoute("/api/public/hooks/push-reminder")({
         } as const;
         const preset = presets[slot] ?? presets.morning;
         const result = await sendPushToAll({
-          title: body.title ?? preset.title,
-          body: body.message ?? preset.body,
+          title: title ?? preset.title,
+          body: message ?? preset.body,
           url: "/coleta",
           tag: `jassy-${slot}`,
         });
