@@ -126,13 +126,13 @@ function RankingPage() {
             })}
           </div>
 
-          {/* Lista */}
+          {/* Lista — cores comuns (neutras) para 4º lugar em diante */}
           <div className="space-y-2">
             {rest.map((r, i) => {
               const isMe = r.user_id === user?.id;
               return (
-                <Card key={r.user_id} className={`p-3 flex items-center gap-3 ${isMe ? "ring-2 ring-primary" : ""}`}>
-                  <div className="h-9 w-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-display font-bold">
+                <Card key={r.user_id} className={`p-3 flex items-center gap-3 bg-card ${isMe ? "ring-2 ring-primary" : ""}`}>
+                  <div className="h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-display font-bold">
                     {i + 4}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -142,11 +142,11 @@ function RankingPage() {
                     {r.full_name && r.social_name && r.full_name !== r.social_name && (
                       <div className="text-[11px] text-muted-foreground truncate">@{r.social_name}</div>
                     )}
-                    <div className="text-xs text-muted-foreground mt-0.5">Hoje {r.items_today} · Semana {r.items_week} · Total {r.items_total}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Hoje {r.items_today} · Semana {r.items_week} · Mês {r.items_month} · Total {r.items_total}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-display font-bold text-primary">{r.points}</div>
-                    <div className="text-[10px] text-muted-foreground -mt-0.5">pts</div>
+                    <div className="font-display font-bold text-foreground">{r.items_month}</div>
+                    <div className="text-[10px] text-muted-foreground -mt-0.5">no mês</div>
                   </div>
                 </Card>
               );
