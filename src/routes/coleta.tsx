@@ -272,11 +272,14 @@ function ColetaPage() {
                 hintText="Esperado: UC(9 díg) · Item(11 díg) · Lote"
               />
               <div className="flex-1 grid grid-cols-3 gap-2">
-                <ReadOnlyField label="UC" value={uc} placeholder="—" />
-                <ReadOnlyField label="Item" value={item} placeholder="—" mono />
-                <ReadOnlyField label="Lote" value={lote} placeholder="—" />
+                <EditableField label="UC" value={uc} onChange={(v) => { setUc(v); setOverrideId(null); setDismissedUc(null); }} placeholder="UC" />
+                <EditableField label="Item" value={item} onChange={setItem} placeholder="Código" mono />
+                <EditableField label="Lote" value={lote} onChange={setLote} placeholder="Lote" />
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Você pode escanear ou digitar manualmente os campos acima.
+            </p>
           </section>
 
           {/* PASSO 2 — Endereço */}
@@ -364,6 +367,21 @@ function ReadOnlyField({ label, value, placeholder, mono }: { label: string; val
       <div className={`h-10 px-2.5 flex items-center rounded-md border bg-muted/40 text-sm ${mono ? "font-mono" : ""} ${value ? "text-foreground" : "text-muted-foreground"} truncate`}>
         {value || placeholder}
       </div>
+    </div>
+  );
+}
+
+function EditableField({ label, value, onChange, placeholder, mono }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</span>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`h-10 px-2.5 text-sm ${mono ? "font-mono" : ""}`}
+        aria-label={label}
+      />
     </div>
   );
 }
