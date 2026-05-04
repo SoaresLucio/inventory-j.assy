@@ -109,7 +109,8 @@ function RankingPage() {
                   <Card className={`w-full ${styles.h} ${styles.bg} border-0 flex flex-col items-center justify-center p-2 shadow-[var(--shadow-elevated)]`}>
                     <Icon className="h-6 w-6" />
                     <div className="text-2xl font-display font-extrabold leading-none mt-1">{order + 1}º</div>
-                    <div className="text-xs font-semibold mt-1">{r.points} pts</div>
+                    <div className="text-[11px] font-semibold mt-1 opacity-90">no mês</div>
+                    <div className="text-lg font-display font-extrabold leading-none">{r.items_month}</div>
                   </Card>
                   <div className="text-center">
                     <div className="text-sm font-bold truncate max-w-[120px]" title={r.full_name}>
@@ -118,7 +119,7 @@ function RankingPage() {
                     {r.full_name && r.social_name && r.full_name !== r.social_name && (
                       <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">@{r.social_name}</div>
                     )}
-                    <div className="text-[11px] text-muted-foreground mt-0.5">Hoje: {r.items_today}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{r.points} pts · Hoje {r.items_today}</div>
                   </div>
                 </div>
               );
