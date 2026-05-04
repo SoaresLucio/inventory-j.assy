@@ -29,8 +29,11 @@ interface RankingRow {
   points: number;
   items_today: number;
   items_week: number;
+  items_month: number;
   items_total: number;
 }
+
+const MONTH_LABEL = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
 
 function RankingPage() {
   const { user } = useAuth();
@@ -40,12 +43,19 @@ function RankingPage() {
       const { data, error } = await supabase
         .from("ranking_view" as never)
         .select("*")
-        .order("points", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
-      return (data as unknown as RankingRow[]).filter((r) => r.points > 0 || r.items_total > 0);
+      const rows = (data as unknown as RankingRow[]) ?? [];
+      // Ordena por itens do mês (desc), depois pontos, depois total
+      return rows
+        .filter((r) => r.items_month > 0 || r.points > 0 || r.items_total > 0)
+        .sort((a, b) =>
+          b.items_month - a.items_month ||
+          b.points - a.points ||
+          b.items_total - a.items_total,
+        );
     },
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   });
 
   // Realtime: refetch ao detectar nova inserção
@@ -67,7 +77,7 @@ function RankingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Trophy className="h-6 w-6 text-primary" /> Ranking</h1>
-          <p className="text-sm text-muted-foreground">Top inventaristas — atualiza em tempo real</p>
+          <p className="text-sm text-muted-foreground capitalize">Itens coletados em {MONTH_LABEL} — tempo real</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
           <RefreshCw className={`h-4 w-4 mr-1 ${isRefetching ? "animate-spin" : ""}`} /> Atualizar
@@ -99,7 +109,8 @@ function RankingPage() {
                   <Card className={`w-full ${styles.h} ${styles.bg} border-0 flex flex-col items-center justify-center p-2 shadow-[var(--shadow-elevated)]`}>
                     <Icon className="h-6 w-6" />
                     <div className="text-2xl font-display font-extrabold leading-none mt-1">{order + 1}º</div>
-                    <div className="text-xs font-semibold mt-1">{r.points} pts</div>
+                    <div className="text-[11px] font-semibold mt-1 opacity-90">no mês</div>
+                    <div className="text-lg font-display font-extrabold leading-none">{r.items_month}</div>
                   </Card>
                   <div className="text-center">
                     <div className="text-sm font-bold truncate max-w-[120px]" title={r.full_name}>
@@ -108,20 +119,20 @@ function RankingPage() {
                     {r.full_name && r.social_name && r.full_name !== r.social_name && (
                       <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">@{r.social_name}</div>
                     )}
-                    <div className="text-[11px] text-muted-foreground mt-0.5">Hoje: {r.items_today}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{r.points} pts · Hoje {r.items_today}</div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Lista */}
+          {/* Lista — cores comuns (neutras) para 4º lugar em diante */}
           <div className="space-y-2">
             {rest.map((r, i) => {
               const isMe = r.user_id === user?.id;
               return (
-                <Card key={r.user_id} className={`p-3 flex items-center gap-3 ${isMe ? "ring-2 ring-primary" : ""}`}>
-                  <div className="h-9 w-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-display font-bold">
+                <Card key={r.user_id} className={`p-3 flex items-center gap-3 bg-card ${isMe ? "ring-2 ring-primary" : ""}`}>
+                  <div className="h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-display font-bold">
                     {i + 4}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -131,11 +142,11 @@ function RankingPage() {
                     {r.full_name && r.social_name && r.full_name !== r.social_name && (
                       <div className="text-[11px] text-muted-foreground truncate">@{r.social_name}</div>
                     )}
-                    <div className="text-xs text-muted-foreground mt-0.5">Hoje {r.items_today} · Semana {r.items_week} · Total {r.items_total}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Hoje {r.items_today} · Semana {r.items_week} · Mês {r.items_month} · Total {r.items_total}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-display font-bold text-primary">{r.points}</div>
-                    <div className="text-[10px] text-muted-foreground -mt-0.5">pts</div>
+                    <div className="font-display font-bold text-foreground">{r.items_month}</div>
+                    <div className="text-[10px] text-muted-foreground -mt-0.5">no mês</div>
                   </div>
                 </Card>
               );
