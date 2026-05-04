@@ -29,8 +29,11 @@ interface RankingRow {
   points: number;
   items_today: number;
   items_week: number;
+  items_month: number;
   items_total: number;
 }
+
+const MONTH_LABEL = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
 
 function RankingPage() {
   const { user } = useAuth();
@@ -40,12 +43,19 @@ function RankingPage() {
       const { data, error } = await supabase
         .from("ranking_view" as never)
         .select("*")
-        .order("points", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
-      return (data as unknown as RankingRow[]).filter((r) => r.points > 0 || r.items_total > 0);
+      const rows = (data as unknown as RankingRow[]) ?? [];
+      // Ordena por itens do mês (desc), depois pontos, depois total
+      return rows
+        .filter((r) => r.items_month > 0 || r.points > 0 || r.items_total > 0)
+        .sort((a, b) =>
+          b.items_month - a.items_month ||
+          b.points - a.points ||
+          b.items_total - a.items_total,
+        );
     },
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   });
 
   // Realtime: refetch ao detectar nova inserção
