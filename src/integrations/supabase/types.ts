@@ -166,6 +166,7 @@ export type Database = {
       ranking_view: {
         Row: {
           full_name: string | null
+          items_month: number | null
           items_today: number | null
           items_total: number | null
           items_week: number | null
@@ -181,6 +182,7 @@ export type Database = {
         Args: never
         Returns: {
           full_name: string
+          items_month: number
           items_today: number
           items_total: number
           items_week: number
