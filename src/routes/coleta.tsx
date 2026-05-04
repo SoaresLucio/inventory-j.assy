@@ -370,3 +370,18 @@ function ReadOnlyField({ label, value, placeholder, mono }: { label: string; val
     </div>
   );
 }
+
+function EditableField({ label, value, onChange, placeholder, mono }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</span>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`h-10 px-2.5 text-sm ${mono ? "font-mono" : ""}`}
+        aria-label={label}
+      />
+    </div>
+  );
+}
