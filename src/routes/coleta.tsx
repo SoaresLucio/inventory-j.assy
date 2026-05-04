@@ -272,11 +272,14 @@ function ColetaPage() {
                 hintText="Esperado: UC(9 díg) · Item(11 díg) · Lote"
               />
               <div className="flex-1 grid grid-cols-3 gap-2">
-                <ReadOnlyField label="UC" value={uc} placeholder="—" />
-                <ReadOnlyField label="Item" value={item} placeholder="—" mono />
-                <ReadOnlyField label="Lote" value={lote} placeholder="—" />
+                <EditableField label="UC" value={uc} onChange={(v) => { setUc(v); setOverrideId(null); setDismissedUc(null); }} placeholder="UC" />
+                <EditableField label="Item" value={item} onChange={setItem} placeholder="Código" mono />
+                <EditableField label="Lote" value={lote} onChange={setLote} placeholder="Lote" />
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Você pode escanear ou digitar manualmente os campos acima.
+            </p>
           </section>
 
           {/* PASSO 2 — Endereço */}
