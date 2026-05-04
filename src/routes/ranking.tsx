@@ -77,7 +77,7 @@ function RankingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Trophy className="h-6 w-6 text-primary" /> Ranking</h1>
-          <p className="text-sm text-muted-foreground">Top inventaristas — atualiza em tempo real</p>
+          <p className="text-sm text-muted-foreground capitalize">Itens coletados em {MONTH_LABEL} — tempo real</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
           <RefreshCw className={`h-4 w-4 mr-1 ${isRefetching ? "animate-spin" : ""}`} /> Atualizar
