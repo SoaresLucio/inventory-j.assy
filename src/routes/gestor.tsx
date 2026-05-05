@@ -67,10 +67,13 @@ function GestorPage() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    const end = enderecoFilter.toLowerCase();
+    const fragments = buildAddressSearchFragments(enderecoFilter).map((f) => f.toUpperCase());
     return data.rows.filter((r) => {
       if (userFilter !== "all" && r.user_id !== userFilter) return false;
-      if (end && !r.endereco.toLowerCase().includes(end)) return false;
+      if (fragments.length > 0) {
+        const end = (r.endereco ?? "").toUpperCase();
+        if (!fragments.every((f) => end.includes(f))) return false;
+      }
       if (dateFilter && !r.created_at.startsWith(dateFilter)) return false;
       return true;
     });
