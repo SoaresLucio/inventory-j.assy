@@ -309,16 +309,18 @@ function ColetaPage() {
                 onDetected={handleScanEndereco}
                 variant="endereco"
                 label="Escanear endereço"
-                hintText="Esperado: 0E|GALPAOxxPRATxBOXxxA"
+                hintText="0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A"
               />
               <div className="flex-1">
                 <Input
-                  value={enderecoDisplay || endereco}
-                  readOnly
-                  disabled
-                  placeholder="Toque na câmera laranja"
-                  className="h-12 text-base font-mono cursor-not-allowed bg-muted/40"
-                  aria-label="Endereço escaneado"
+                  value={enderecoDisplay}
+                  onChange={(e) => handleEnderecoTyping(e.target.value)}
+                  placeholder="Câmera ou digite: G8 P6 B7A"
+                  className={`h-12 text-base font-mono ${enderecoReady ? "border-success ring-1 ring-success" : ""}`}
+                  aria-label="Endereço (escaneado ou digitado)"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
               {endereco && (
@@ -327,9 +329,15 @@ function ColetaPage() {
                 </Button>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Digitação manual bloqueada — leitura obrigatória do QR.
-            </p>
+            {enderecoReady ? (
+              <p className="text-[11px] text-success flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Reconhecido: {parseAddress(enderecoDisplay)?.pretty ?? endereco}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Escaneie o QR ou digite a abreviação (G8 P6 B7A) — conversão automática.
+              </p>
+            )}
           </section>
 
           {/* Quantidade */}
