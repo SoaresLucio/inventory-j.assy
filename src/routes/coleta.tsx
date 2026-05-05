@@ -379,17 +379,6 @@ function ColetaPage() {
   );
 }
 
-function ReadOnlyField({ label, value, placeholder, mono }: { label: string; value: string; placeholder?: string; mono?: boolean }) {
-  return (
-    <div className="space-y-1">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</span>
-      <div className={`h-10 px-2.5 flex items-center rounded-md border bg-muted/40 text-sm ${mono ? "font-mono" : ""} ${value ? "text-foreground" : "text-muted-foreground"} truncate`}>
-        {value || placeholder}
-      </div>
-    </div>
-  );
-}
-
 function EditableField({ label, value, onChange, placeholder, mono }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
   return (
     <div className="space-y-1">
