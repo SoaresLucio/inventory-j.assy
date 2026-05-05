@@ -183,14 +183,24 @@ function ColetaPage() {
   }, []);
 
   const handleScanEndereco = useCallback((raw: string) => {
-    const parsed = parseEnderecoPayload(raw);
+    const parsed = parseAddress(raw) ?? (parseEnderecoPayload(raw) as ReturnType<typeof parseAddress> | null);
     if (!parsed) {
-      toast.error("Endereço inválido. Esperado: 0E|GALPAOxxPRATxBOXxxA");
+      toast.error("Endereço inválido. Esperado: 0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A");
       return;
     }
     setEndereco(parsed.canonical);
-    setEnderecoDisplay(parsed.display);
+    setEnderecoDisplay(parsed.pretty);
     toast.success(`Endereço: ${parsed.display}`);
+  }, []);
+
+  const handleEnderecoTyping = useCallback((value: string) => {
+    setEnderecoDisplay(value);
+    const parsed = parseAddress(value);
+    if (parsed) {
+      setEndereco(parsed.canonical);
+    } else {
+      setEndereco("");
+    }
   }, []);
 
   const handleOverride = () => {
