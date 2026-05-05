@@ -51,6 +51,9 @@ export async function exportInventoryXlsx({
     const social = fixedUser?.social_name ?? r.social_name ?? "";
     const full = fixedUser?.full_name ?? r.full_name ?? "";
     const d = new Date(r.created_at);
+    const addr = parseAddress(r.endereco);
+    const localSimplificada = addr ? `G${parseInt(addr.galpao, 10)} P${addr.prateleira} B${addr.box.replace(/^0+/, "")}` : r.endereco;
+    const enderecoOficial = addr ? addr.official : r.endereco;
     const base: Record<string, string | number> = {
       "#": i + 1,
       "Inventarista (login)": social,
@@ -59,7 +62,8 @@ export async function exportInventoryXlsx({
       "Quantidade": r.quantidade,
       "UC": r.uc,
       "Lote": r.lote,
-      "Endereço": r.endereco,
+      "Endereço (Oficial)": enderecoOficial,
+      "Localização Simplificada": localSimplificada,
       "Data": format(d, "dd/MM/yyyy"),
       "Hora": format(d, "HH:mm:ss"),
       "ID do registro": r.id,
@@ -69,10 +73,11 @@ export async function exportInventoryXlsx({
   });
 
   const sheet = XLSX.utils.json_to_sheet(data);
-  const cols = [5, 22, 28, 16, 10, 12, 14, 18, 12, 10, 38];
+  const cols = [5, 22, 28, 16, 10, 12, 14, 26, 16, 12, 10, 38];
   if (includeUserId) cols.push(38);
   sheet["!cols"] = cols.map((wch) => ({ wch }));
-  const lastCol = String.fromCharCode(64 + cols.length); // K ou L
+  const lastColIdx = cols.length;
+  const lastCol = lastColIdx <= 26 ? String.fromCharCode(64 + lastColIdx) : `A${String.fromCharCode(64 + lastColIdx - 26)}`;
   sheet["!autofilter"] = { ref: `A1:${lastCol}${ordered.length + 1}` };
   (sheet as Record<string, unknown>)["!freeze"] = { xSplit: 0, ySplit: 1 };
 
