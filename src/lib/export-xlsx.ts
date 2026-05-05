@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { parseAddress } from "@/utils/address-parser";
 
 export interface InventoryRow {
   id: string;
