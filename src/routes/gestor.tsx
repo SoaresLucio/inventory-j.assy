@@ -183,7 +183,7 @@ function GestorPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Endereço contém</Label>
-            <Input value={enderecoFilter} onChange={(e) => setEnderecoFilter(e.target.value)} placeholder="ex: A-12" className="h-11" />
+            <Input value={enderecoFilter} onChange={(e) => setEnderecoFilter(e.target.value)} placeholder="ex: G8 P6 B7A ou GALPAO08" className="h-11" />
           </div>
         </div>
       </Card>
