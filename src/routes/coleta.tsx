@@ -183,7 +183,7 @@ function ColetaPage() {
   }, []);
 
   const handleScanEndereco = useCallback((raw: string) => {
-    const parsed = parseAddress(raw) ?? (parseEnderecoPayload(raw) as ReturnType<typeof parseAddress> | null);
+    const parsed = parseAddress(raw);
     if (!parsed) {
       toast.error("Endereço inválido. Esperado: 0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A");
       return;
