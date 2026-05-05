@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { enqueueItem, flushQueue, pendingCount } from "@/lib/offline-queue";
 import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles, Lock, MapPin, Package } from "lucide-react";
 import { UCRecurrenceAlert, type UCExisting } from "@/components/UCRecurrenceAlert";
-import { parseEnderecoPayload } from "@/lib/qr-parse";
+import { parseAddress } from "@/utils/address-parser";
 
 export const Route = createFileRoute("/coleta")({
   component: () => (
@@ -182,14 +182,24 @@ function ColetaPage() {
   }, []);
 
   const handleScanEndereco = useCallback((raw: string) => {
-    const parsed = parseEnderecoPayload(raw);
+    const parsed = parseAddress(raw);
     if (!parsed) {
-      toast.error("Endereço inválido. Esperado: 0E|GALPAOxxPRATxBOXxxA");
+      toast.error("Endereço inválido. Esperado: 0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A");
       return;
     }
     setEndereco(parsed.canonical);
-    setEnderecoDisplay(parsed.display);
+    setEnderecoDisplay(parsed.pretty);
     toast.success(`Endereço: ${parsed.display}`);
+  }, []);
+
+  const handleEnderecoTyping = useCallback((value: string) => {
+    setEnderecoDisplay(value);
+    const parsed = parseAddress(value);
+    if (parsed) {
+      setEndereco(parsed.canonical);
+    } else {
+      setEndereco("");
+    }
   }, []);
 
   const handleOverride = () => {
@@ -298,16 +308,18 @@ function ColetaPage() {
                 onDetected={handleScanEndereco}
                 variant="endereco"
                 label="Escanear endereço"
-                hintText="Esperado: 0E|GALPAOxxPRATxBOXxxA"
+                hintText="0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A"
               />
               <div className="flex-1">
                 <Input
-                  value={enderecoDisplay || endereco}
-                  readOnly
-                  disabled
-                  placeholder="Toque na câmera laranja"
-                  className="h-12 text-base font-mono cursor-not-allowed bg-muted/40"
-                  aria-label="Endereço escaneado"
+                  value={enderecoDisplay}
+                  onChange={(e) => handleEnderecoTyping(e.target.value)}
+                  placeholder="Câmera ou digite: G8 P6 B7A"
+                  className={`h-12 text-base font-mono ${enderecoReady ? "border-success ring-1 ring-success" : ""}`}
+                  aria-label="Endereço (escaneado ou digitado)"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
               {endereco && (
@@ -316,9 +328,15 @@ function ColetaPage() {
                 </Button>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Digitação manual bloqueada — leitura obrigatória do QR.
-            </p>
+            {enderecoReady ? (
+              <p className="text-[11px] text-success flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Reconhecido: {parseAddress(enderecoDisplay)?.pretty ?? endereco}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Escaneie o QR ou digite a abreviação (G8 P6 B7A) — conversão automática.
+              </p>
+            )}
           </section>
 
           {/* Quantidade */}
@@ -356,17 +374,6 @@ function ColetaPage() {
           )}
         </form>
       </Card>
-    </div>
-  );
-}
-
-function ReadOnlyField({ label, value, placeholder, mono }: { label: string; value: string; placeholder?: string; mono?: boolean }) {
-  return (
-    <div className="space-y-1">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</span>
-      <div className={`h-10 px-2.5 flex items-center rounded-md border bg-muted/40 text-sm ${mono ? "font-mono" : ""} ${value ? "text-foreground" : "text-muted-foreground"} truncate`}>
-        {value || placeholder}
-      </div>
     </div>
   );
 }

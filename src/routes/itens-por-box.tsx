@@ -100,7 +100,7 @@ function ItensPorBoxPage() {
               id="endereco-manual"
               value={manual}
               onChange={(e) => setManual(e.target.value)}
-              placeholder="Ex: 0E|GALPAO08PRAT6BOX07A"
+              placeholder="Ex: 0E|GALPAO08PRAT6BOX07A ou G8 P6 B7A"
               className="h-12 text-base font-mono"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {

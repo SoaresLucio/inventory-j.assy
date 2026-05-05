@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Bell, Download, Filter, Package, Users } from "lucide-react";
 import { toast } from "sonner";
 import { exportInventoryXlsx, xlsxFilename, type InventoryRow } from "@/lib/export-xlsx";
+import { buildAddressSearchFragments } from "@/utils/address-parser";
 import { useServerFn } from "@tanstack/react-start";
 import { sendTestPush } from "@/server/push.functions";
 
@@ -66,10 +67,13 @@ function GestorPage() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    const end = enderecoFilter.toLowerCase();
+    const fragments = buildAddressSearchFragments(enderecoFilter).map((f) => f.toUpperCase());
     return data.rows.filter((r) => {
       if (userFilter !== "all" && r.user_id !== userFilter) return false;
-      if (end && !r.endereco.toLowerCase().includes(end)) return false;
+      if (fragments.length > 0) {
+        const end = (r.endereco ?? "").toUpperCase();
+        if (!fragments.every((f) => end.includes(f))) return false;
+      }
       if (dateFilter && !r.created_at.startsWith(dateFilter)) return false;
       return true;
     });
@@ -179,7 +183,7 @@ function GestorPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Endereço contém</Label>
-            <Input value={enderecoFilter} onChange={(e) => setEnderecoFilter(e.target.value)} placeholder="ex: A-12" className="h-11" />
+            <Input value={enderecoFilter} onChange={(e) => setEnderecoFilter(e.target.value)} placeholder="ex: G8 P6 B7A ou GALPAO08" className="h-11" />
           </div>
         </div>
       </Card>
