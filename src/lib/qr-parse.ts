@@ -109,16 +109,32 @@ export function parseEnderecoPayload(raw: string): ParsedEndereco | null {
   // remove prefixo tipo "0E|" e espaços
   const cleaned = raw.trim().replace(/^[0-9A-Z]{1,3}\s*\|\s*/i, "").toUpperCase();
   const m = cleaned.match(ENDERECO_RE);
-  if (!m) return null;
-  const galpao = m[1].padStart(2, "0");
-  const prateleira = String(parseInt(m[2], 10));
-  const box = m[3].toUpperCase();
-  return {
-    galpao,
-    prateleira,
-    box,
-    canonical: `GALPAO${galpao}-PRAT${prateleira}-BOX${box}`,
-    display: `Galpão ${galpao} · Prat ${prateleira} · Box ${box}`,
-  };
+  if (m) {
+    const galpao = m[1].padStart(2, "0");
+    const prateleira = String(parseInt(m[2], 10));
+    const box = m[3].toUpperCase();
+    return {
+      galpao,
+      prateleira,
+      box,
+      canonical: `GALPAO${galpao}-PRAT${prateleira}-BOX${box}`,
+      display: `Galpão ${galpao} · Prat ${prateleira} · Box ${box}`,
+    };
+  }
+  // Fallback — abreviações como "G8 P6 B7A"
+  const ab = cleaned.match(/\bG\s*0*(\d{1,2})\D*P\s*0*(\d{1,2})\D*B\s*0*(\d{1,2})\s*([A-Z])?\b/);
+  if (ab) {
+    const galpao = ab[1].padStart(2, "0");
+    const prateleira = String(parseInt(ab[2], 10));
+    const box = `${ab[3].padStart(2, "0")}${(ab[4] ?? "")}`;
+    return {
+      galpao,
+      prateleira,
+      box,
+      canonical: `GALPAO${galpao}-PRAT${prateleira}-BOX${box}`,
+      display: `Galpão ${galpao} · Prat ${prateleira} · Box ${box}`,
+    };
+  }
+  return null;
 }
 
