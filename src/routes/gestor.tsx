@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Bell, Download, Filter, Package, Users } from "lucide-react";
 import { toast } from "sonner";
 import { exportInventoryXlsx, xlsxFilename, type InventoryRow } from "@/lib/export-xlsx";
+import { buildAddressSearchFragments } from "@/utils/address-parser";
 import { useServerFn } from "@tanstack/react-start";
 import { sendTestPush } from "@/server/push.functions";
 
