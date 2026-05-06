@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { memo, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { memo, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ProtectedShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
