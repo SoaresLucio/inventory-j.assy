@@ -57,23 +57,52 @@ function ColetaPage() {
 
   const refreshPending = () => pendingCount().then(setPending);
 
+  const trySync = useCallback(async (silent = false) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    const { ok, failed } = await flushQueue();
+    if (ok > 0) {
+      toast.success(`${ok} registro(s) sincronizado(s)`);
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["uc-check"] });
+    } else if (failed > 0 && !silent) {
+      toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
+    }
+    refreshPending();
+  }, [qc]);
+
   useEffect(() => {
     refreshPending();
+    // Tenta sincronizar ao montar (caso haja itens pendentes de sessão anterior)
+    trySync(true);
+
     const goOnline = async () => {
       setOnline(true);
-      const { ok } = await flushQueue();
-      if (ok > 0) toast.success(`${ok} registro(s) sincronizado(s)`);
-      refreshPending();
-      qc.invalidateQueries({ queryKey: ["inventory"] });
+      await trySync();
     };
     const goOffline = () => setOnline(false);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") trySync(true);
+    };
+
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Retry periódico enquanto houver pendentes e estiver online
+    const interval = window.setInterval(() => {
+      pendingCount().then((n) => {
+        if (n > 0 && navigator.onLine) trySync(true);
+        setPending(n);
+      });
+    }, 15_000);
+
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
     };
-  }, [qc]);
+  }, [qc, trySync]);
 
   const ucTrimmed = uc.trim();
   const ucToCheck = ucTrimmed.length >= 6 && ucTrimmed !== dismissedUc ? ucTrimmed : "";
