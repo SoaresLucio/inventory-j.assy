@@ -54,6 +54,12 @@ function ColetaPage() {
   const [floatPts, setFloatPts] = useState(0);
   const [overrideId, setOverrideId] = useState<string | null>(null);
   const [dismissedUc, setDismissedUc] = useState<string | null>(null);
+  type ConfirmState =
+    | { status: "idle" }
+    | { status: "verifying"; client_id: string; seq: number }
+    | { status: "confirmed"; seq: number; item_code: string }
+    | { status: "queued"; seq: number };
+  const [confirm, setConfirm] = useState<ConfirmState>({ status: "idle" });
 
   const refreshPending = () => pendingCount().then(setPending);
 
