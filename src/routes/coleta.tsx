@@ -60,6 +60,7 @@ function ColetaPage() {
     | { status: "confirmed"; seq: number; item_code: string }
     | { status: "queued"; seq: number; client_id?: string };
   const [confirm, setConfirm] = useState<ConfirmState>({ status: "idle" });
+  const queuedConfirmRef = useRef<{ client_id: string; seq: number } | null>(null);
 
   const refreshPending = () => pendingCount().then(setPending);
 
@@ -76,6 +77,7 @@ function ColetaPage() {
         .maybeSingle();
       if (found) {
         setConfirm({ status: "confirmed", seq, item_code: found.item_code });
+        if (queuedConfirmRef.current?.client_id === client_id) queuedConfirmRef.current = null;
         qc.invalidateQueries({ queryKey: ["inventory"] });
         qc.invalidateQueries({ queryKey: ["uc-check"] });
         return true;
@@ -83,7 +85,8 @@ function ColetaPage() {
       await new Promise((r) => setTimeout(r, 700));
     }
 
-    setConfirm({ status: "queued", seq });
+    queuedConfirmRef.current = { client_id, seq };
+    setConfirm({ status: "queued", seq, client_id });
     return false;
   }, [qc]);
 
@@ -94,17 +97,18 @@ function ColetaPage() {
       toast.success(`${ok} registro(s) sincronizado(s)`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["uc-check"] });
-      const pendingConfirm = confirm.status === "queued" && confirm.client_id ? synced.find((it) => it.client_id === confirm.client_id) : null;
+      const queuedConfirm = queuedConfirmRef.current;
+      const pendingConfirm = queuedConfirm ? synced.find((it) => it.client_id === queuedConfirm.client_id) : null;
       const itemToConfirm = pendingConfirm ?? synced.at(-1);
       if (itemToConfirm) {
-        const seq = confirm.status === "queued" && pendingConfirm ? confirm.seq : lastCount || ok;
+        const seq = queuedConfirm && pendingConfirm ? queuedConfirm.seq : lastCount || ok;
         await confirmSavedItem(itemToConfirm.client_id, seq);
       }
     } else if (failed > 0 && !silent) {
       toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
     }
     refreshPending();
-  }, [confirm, confirmSavedItem, lastCount, qc]);
+  }, [confirmSavedItem, lastCount, qc]);
 
   useEffect(() => {
     refreshPending();
