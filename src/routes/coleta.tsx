@@ -430,6 +430,39 @@ function ColetaPage() {
             )}
           </Button>
 
+          {confirm.status !== "idle" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                confirm.status === "confirmed"
+                  ? "bg-success/15 text-success border border-success/30"
+                  : confirm.status === "verifying"
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-warning/15 text-foreground border border-warning/30"
+              }`}
+            >
+              {confirm.status === "verifying" && (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Verificando nº {confirm.seq}...
+                </>
+              )}
+              {confirm.status === "confirmed" && (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  ✓ Confirmado nº {confirm.seq} <span className="font-mono">({confirm.item_code})</span>
+                </>
+              )}
+              {confirm.status === "queued" && (
+                <>
+                  <CloudOff className="h-3.5 w-3.5" />
+                  Nº {confirm.seq} aguardando sincronização
+                </>
+              )}
+            </div>
+          )}
+
           {lastCount > 0 && (
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
