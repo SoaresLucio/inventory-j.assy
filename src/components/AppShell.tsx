@@ -1,15 +1,17 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { ClipboardList, History, LayoutDashboard, LogOut, MapPin, PackageCheck, Trophy, Users } from "lucide-react";
+import { Bell, ClipboardList, History, LayoutDashboard, LogOut, MapPin, MessageSquare, PackageCheck, Trophy, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { EnablePushButton } from "@/components/EnablePushButton";
+import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
 import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, role, signOut } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
+  const unread = useUnreadNotifications();
 
   const handleLogout = async () => {
     await signOut();
@@ -22,12 +24,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           { to: "/gestor", label: "Painel", icon: LayoutDashboard },
           { to: "/itens-por-box", label: "Por Box", icon: MapPin },
           { to: "/usuarios", label: "Usuários", icon: Users },
+          { to: "/notificacoes-gestor", label: "Enviar", icon: MessageSquare },
           { to: "/ranking", label: "Ranking", icon: Trophy },
           { to: "/historico", label: "Histórico", icon: History },
         ]
       : [
           { to: "/coleta", label: "Escanear", icon: ClipboardList },
           { to: "/itens-por-box", label: "Por Box", icon: MapPin },
+          { to: "/notificacoes", label: "Avisos", icon: Bell },
           { to: "/ranking", label: "Ranking", icon: Trophy },
           { to: "/historico", label: "Histórico", icon: History },
         ];
@@ -49,6 +53,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <span className="hidden sm:block text-sm text-muted-foreground">{profile?.social_name}</span>
+            <Link
+              to="/notificacoes"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent transition-colors"
+              aria-label={`Notificações${unread > 0 ? ` (${unread} não lidas)` : ""}`}
+            >
+              <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </Link>
             <EnablePushButton />
             <InstallPWAButton />
             <Button variant="ghost" size="sm" onClick={handleLogout} aria-label="Sair">
