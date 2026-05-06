@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as NotificacoesGestorRouteImport } from './routes/notificacoes-gestor'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as ItensPorBoxRouteImport } from './routes/itens-por-box'
 import { Route as HistoricoRouteImport } from './routes/historico'
@@ -28,6 +29,11 @@ const UsuariosRoute = UsuariosRouteImport.update({
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesGestorRoute = NotificacoesGestorRouteImport.update({
+  id: '/notificacoes-gestor',
+  path: '/notificacoes-gestor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificacoesRoute = NotificacoesRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
   '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
   '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
   '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/itens-por-box'
     | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/itens-por-box'
     | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/itens-por-box'
     | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   HistoricoRoute: typeof HistoricoRoute
   ItensPorBoxRoute: typeof ItensPorBoxRoute
   NotificacoesRoute: typeof NotificacoesRoute
+  NotificacoesGestorRoute: typeof NotificacoesGestorRoute
   RankingRoute: typeof RankingRoute
   UsuariosRoute: typeof UsuariosRoute
   ApiPublicHooksPushReminderRoute: typeof ApiPublicHooksPushReminderRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificacoes-gestor': {
+      id: '/notificacoes-gestor'
+      path: '/notificacoes-gestor'
+      fullPath: '/notificacoes-gestor'
+      preLoaderRoute: typeof NotificacoesGestorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notificacoes': {
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoricoRoute: HistoricoRoute,
   ItensPorBoxRoute: ItensPorBoxRoute,
   NotificacoesRoute: NotificacoesRoute,
+  NotificacoesGestorRoute: NotificacoesGestorRoute,
   RankingRoute: RankingRoute,
   UsuariosRoute: UsuariosRoute,
   ApiPublicHooksPushReminderRoute: ApiPublicHooksPushReminderRoute,
@@ -251,3 +272,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
