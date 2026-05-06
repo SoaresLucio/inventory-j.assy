@@ -63,18 +63,48 @@ function ColetaPage() {
 
   const refreshPending = () => pendingCount().then(setPending);
 
+  const confirmSavedItem = useCallback(async (client_id: string, seq: number) => {
+    setConfirm((current) =>
+      current.status === "confirmed" && current.seq === seq ? current : { status: "verifying", client_id, seq },
+    );
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: found } = await supabase
+        .from("inventory_items")
+        .select("id, item_code")
+        .eq("client_id", client_id)
+        .maybeSingle();
+      if (found) {
+        setConfirm({ status: "confirmed", seq, item_code: found.item_code });
+        qc.invalidateQueries({ queryKey: ["inventory"] });
+        qc.invalidateQueries({ queryKey: ["uc-check"] });
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, 700));
+    }
+
+    setConfirm({ status: "queued", seq });
+    return false;
+  }, [qc]);
+
   const trySync = useCallback(async (silent = false) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
-    const { ok, failed } = await flushQueue();
+    const { ok, failed, synced } = await flushQueue();
     if (ok > 0) {
       toast.success(`${ok} registro(s) sincronizado(s)`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["uc-check"] });
+      const pendingConfirm = confirm.status === "queued" ? synced.find((it) => it.client_id === `${confirm.seq}`) : null;
+      const itemToConfirm = pendingConfirm ?? synced.at(-1);
+      if (itemToConfirm) {
+        const seq = confirm.status === "queued" && pendingConfirm ? confirm.seq : lastCount || ok;
+        await confirmSavedItem(itemToConfirm.client_id, seq);
+      }
     } else if (failed > 0 && !silent) {
       toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
     }
     refreshPending();
-  }, [qc]);
+  }, [confirm, confirmSavedItem, lastCount, qc]);
 
   useEffect(() => {
     refreshPending();
