@@ -54,18 +54,20 @@ export async function pendingCount(): Promise<number> {
   return db.count(STORE);
 }
 
-export async function flushQueue(): Promise<{ ok: number; failed: number }> {
+export async function flushQueue(): Promise<{ ok: number; failed: number; synced: QueuedItem[] }> {
   const items = await getPending();
   let ok = 0, failed = 0;
+  const synced: QueuedItem[] = [];
   for (const it of items) {
     const { error } = await supabase.from("inventory_items").insert(it);
     // Treat duplicate (already synced) as success
     if (!error || error.code === "23505") {
       await removePending(it.client_id);
+      synced.push(it);
       ok++;
     } else {
       failed++;
     }
   }
-  return { ok, failed };
+  return { ok, failed, synced };
 }
