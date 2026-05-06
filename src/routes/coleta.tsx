@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { enqueueItem, flushQueue, pendingCount } from "@/lib/offline-queue";
+import { enqueueItem, flushQueue, pendingCount, removePending } from "@/lib/offline-queue";
 import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles, Lock, MapPin, Package } from "lucide-react";
 import { UCRecurrenceAlert, type UCExisting } from "@/components/UCRecurrenceAlert";
 import { parseAddress } from "@/utils/address-parser";
@@ -57,23 +57,52 @@ function ColetaPage() {
 
   const refreshPending = () => pendingCount().then(setPending);
 
+  const trySync = useCallback(async (silent = false) => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    const { ok, failed } = await flushQueue();
+    if (ok > 0) {
+      toast.success(`${ok} registro(s) sincronizado(s)`);
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["uc-check"] });
+    } else if (failed > 0 && !silent) {
+      toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
+    }
+    refreshPending();
+  }, [qc]);
+
   useEffect(() => {
     refreshPending();
+    // Tenta sincronizar ao montar (caso haja itens pendentes de sessão anterior)
+    trySync(true);
+
     const goOnline = async () => {
       setOnline(true);
-      const { ok } = await flushQueue();
-      if (ok > 0) toast.success(`${ok} registro(s) sincronizado(s)`);
-      refreshPending();
-      qc.invalidateQueries({ queryKey: ["inventory"] });
+      await trySync();
     };
     const goOffline = () => setOnline(false);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") trySync(true);
+    };
+
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Retry periódico enquanto houver pendentes e estiver online
+    const interval = window.setInterval(() => {
+      pendingCount().then((n) => {
+        if (n > 0 && navigator.onLine) trySync(true);
+        setPending(n);
+      });
+    }, 15_000);
+
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
     };
-  }, [qc]);
+  }, [qc, trySync]);
 
   const ucTrimmed = uc.trim();
   const ucToCheck = ucTrimmed.length >= 6 && ucTrimmed !== dismissedUc ? ucTrimmed : "";
@@ -117,32 +146,44 @@ function ColetaPage() {
 
       const client_id = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const payload = { ...vals, user_id: user.id, client_id, created_at: new Date().toISOString() };
+
+      // Sempre enfileira PRIMEIRO (garantia anti-perda em caso de crash/refresh)
+      await enqueueItem(payload);
+
       if (!navigator.onLine) {
-        await enqueueItem(payload);
         return { offline: true, recount: !!overrideId };
       }
+
+      // Tenta enviar imediatamente
       const { error } = await supabase.from("inventory_items").insert(payload);
-      if (error) {
-        await enqueueItem(payload);
+      if (error && error.code !== "23505") {
+        // Falhou — permanece na fila para retry automático
         return { offline: true, recount: !!overrideId };
       }
+      // Sucesso (ou duplicata): remove da fila
+      await removePending(client_id);
       return { offline: false, recount: !!overrideId };
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       setLastCount((c) => c + 1);
       const qty = parseInt(quantidade, 10) || 1;
       setFloatPts(qty * 10);
       setTimeout(() => setFloatPts(0), 1200);
       if (res.offline) {
-        toast.info("Salvo offline. Sincroniza ao voltar a conexão.");
+        toast.info("Salvo offline — será enviado automaticamente.");
         refreshPending();
+        // Tenta sincronizar logo em seguida (caso conexão tenha voltado)
+        setTimeout(() => trySync(true), 2000);
       } else if (res.recount) {
-        toast.success("Recontagem registrada (auditoria imutável preservada)");
+        toast.success("Recontagem registrada");
         qc.invalidateQueries({ queryKey: ["inventory"] });
         qc.invalidateQueries({ queryKey: ["uc-check"] });
+        // Aproveita para escoar qualquer pendente
+        trySync(true);
       } else {
         toast.success("Registro enviado!");
         qc.invalidateQueries({ queryKey: ["inventory"] });
+        trySync(true);
       }
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
       setItem("");
