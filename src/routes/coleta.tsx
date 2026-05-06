@@ -66,14 +66,14 @@ function ColetaPage() {
 
   // Atualiza o cache do histórico/painel imediatamente, sem esperar refetch
   const pushItemToCaches = useCallback((row: Record<string, unknown>) => {
-    qc.setQueriesData<unknown>({ queryKey: ["inventory"] }, (old) => {
+    qc.setQueriesData({ queryKey: ["inventory"] }, (old: unknown) => {
       if (!old) return old;
       if (Array.isArray(old)) {
         if (old.some((r: { client_id?: string }) => r.client_id === row.client_id)) return old;
         return [row, ...old];
       }
-      if (typeof old === "object" && old && "rows" in (old as Record<string, unknown>)) {
-        const o = old as { rows: Array<{ client_id?: string }>; profiles?: unknown };
+      if (typeof old === "object" && "rows" in (old as Record<string, unknown>)) {
+        const o = old as { rows: Array<{ client_id?: string }> };
         if (o.rows.some((r) => r.client_id === row.client_id)) return old;
         return { ...o, rows: [row, ...o.rows] };
       }
