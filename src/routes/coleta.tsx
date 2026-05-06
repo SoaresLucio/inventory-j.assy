@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { enqueueItem, flushQueue, pendingCount } from "@/lib/offline-queue";
+import { enqueueItem, flushQueue, pendingCount, removePending } from "@/lib/offline-queue";
 import { CheckCircle2, CloudOff, Loader2, Send, WifiOff, Sparkles, Lock, MapPin, Package } from "lucide-react";
 import { UCRecurrenceAlert, type UCExisting } from "@/components/UCRecurrenceAlert";
 import { parseAddress } from "@/utils/address-parser";
