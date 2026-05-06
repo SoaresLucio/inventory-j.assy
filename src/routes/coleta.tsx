@@ -146,32 +146,44 @@ function ColetaPage() {
 
       const client_id = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const payload = { ...vals, user_id: user.id, client_id, created_at: new Date().toISOString() };
+
+      // Sempre enfileira PRIMEIRO (garantia anti-perda em caso de crash/refresh)
+      await enqueueItem(payload);
+
       if (!navigator.onLine) {
-        await enqueueItem(payload);
         return { offline: true, recount: !!overrideId };
       }
+
+      // Tenta enviar imediatamente
       const { error } = await supabase.from("inventory_items").insert(payload);
-      if (error) {
-        await enqueueItem(payload);
+      if (error && error.code !== "23505") {
+        // Falhou — permanece na fila para retry automático
         return { offline: true, recount: !!overrideId };
       }
+      // Sucesso (ou duplicata): remove da fila
+      await removePending(client_id);
       return { offline: false, recount: !!overrideId };
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       setLastCount((c) => c + 1);
       const qty = parseInt(quantidade, 10) || 1;
       setFloatPts(qty * 10);
       setTimeout(() => setFloatPts(0), 1200);
       if (res.offline) {
-        toast.info("Salvo offline. Sincroniza ao voltar a conexão.");
+        toast.info("Salvo offline — será enviado automaticamente.");
         refreshPending();
+        // Tenta sincronizar logo em seguida (caso conexão tenha voltado)
+        setTimeout(() => trySync(true), 2000);
       } else if (res.recount) {
-        toast.success("Recontagem registrada (auditoria imutável preservada)");
+        toast.success("Recontagem registrada");
         qc.invalidateQueries({ queryKey: ["inventory"] });
         qc.invalidateQueries({ queryKey: ["uc-check"] });
+        // Aproveita para escoar qualquer pendente
+        trySync(true);
       } else {
         toast.success("Registro enviado!");
         qc.invalidateQueries({ queryKey: ["inventory"] });
+        trySync(true);
       }
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
       setItem("");
