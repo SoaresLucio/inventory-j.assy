@@ -58,7 +58,7 @@ function ColetaPage() {
     | { status: "idle" }
     | { status: "verifying"; client_id: string; seq: number }
     | { status: "confirmed"; seq: number; item_code: string }
-    | { status: "queued"; seq: number };
+    | { status: "queued"; seq: number; client_id?: string };
   const [confirm, setConfirm] = useState<ConfirmState>({ status: "idle" });
 
   const refreshPending = () => pendingCount().then(setPending);
@@ -94,7 +94,7 @@ function ColetaPage() {
       toast.success(`${ok} registro(s) sincronizado(s)`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["uc-check"] });
-      const pendingConfirm = confirm.status === "queued" ? synced.find((it) => it.client_id === `${confirm.seq}`) : null;
+      const pendingConfirm = confirm.status === "queued" && confirm.client_id ? synced.find((it) => it.client_id === confirm.client_id) : null;
       const itemToConfirm = pendingConfirm ?? synced.at(-1);
       if (itemToConfirm) {
         const seq = confirm.status === "queued" && pendingConfirm ? confirm.seq : lastCount || ok;
@@ -208,7 +208,7 @@ function ColetaPage() {
 
       if (res.offline) {
         toast.info("Salvo offline — será enviado automaticamente.");
-        setConfirm({ status: "queued", seq });
+        setConfirm({ status: "queued", seq, client_id: res.client_id });
         refreshPending();
         setTimeout(() => trySync(true), 2000);
       } else {
@@ -234,7 +234,7 @@ function ColetaPage() {
             await new Promise((r) => setTimeout(r, 600));
           }
           // Não confirmou — mantém como queued para o usuário saber que ainda não apareceu
-          setConfirm({ status: "queued", seq });
+          setConfirm({ status: "queued", seq, client_id: res.client_id });
         })();
       }
 
