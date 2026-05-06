@@ -54,6 +54,12 @@ function ColetaPage() {
   const [floatPts, setFloatPts] = useState(0);
   const [overrideId, setOverrideId] = useState<string | null>(null);
   const [dismissedUc, setDismissedUc] = useState<string | null>(null);
+  type ConfirmState =
+    | { status: "idle" }
+    | { status: "verifying"; client_id: string; seq: number }
+    | { status: "confirmed"; seq: number; item_code: string }
+    | { status: "queued"; seq: number };
+  const [confirm, setConfirm] = useState<ConfirmState>({ status: "idle" });
 
   const refreshPending = () => pendingCount().then(setPending);
 
@@ -145,46 +151,63 @@ function ColetaPage() {
       if (!user) throw new Error("Não autenticado");
 
       const client_id = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const item_code = vals.item_code;
       const payload = { ...vals, user_id: user.id, client_id, created_at: new Date().toISOString() };
 
       // Sempre enfileira PRIMEIRO (garantia anti-perda em caso de crash/refresh)
       await enqueueItem(payload);
 
       if (!navigator.onLine) {
-        return { offline: true, recount: !!overrideId };
+        return { offline: true, recount: !!overrideId, client_id, item_code };
       }
 
       // Tenta enviar imediatamente
       const { error } = await supabase.from("inventory_items").insert(payload);
       if (error && error.code !== "23505") {
-        // Falhou — permanece na fila para retry automático
-        return { offline: true, recount: !!overrideId };
+        return { offline: true, recount: !!overrideId, client_id, item_code };
       }
-      // Sucesso (ou duplicata): remove da fila
       await removePending(client_id);
-      return { offline: false, recount: !!overrideId };
+      return { offline: false, recount: !!overrideId, client_id, item_code };
     },
     onSuccess: async (res) => {
-      setLastCount((c) => c + 1);
+      const seq = lastCount + 1;
+      setLastCount(seq);
       const qty = parseInt(quantidade, 10) || 1;
       setFloatPts(qty * 10);
       setTimeout(() => setFloatPts(0), 1200);
+
       if (res.offline) {
         toast.info("Salvo offline — será enviado automaticamente.");
+        setConfirm({ status: "queued", seq });
         refreshPending();
-        // Tenta sincronizar logo em seguida (caso conexão tenha voltado)
         setTimeout(() => trySync(true), 2000);
-      } else if (res.recount) {
-        toast.success("Recontagem registrada");
-        qc.invalidateQueries({ queryKey: ["inventory"] });
-        qc.invalidateQueries({ queryKey: ["uc-check"] });
-        // Aproveita para escoar qualquer pendente
-        trySync(true);
       } else {
-        toast.success("Registro enviado!");
+        // Validação pós-salvamento: confirma que o servidor já vê o item
+        setConfirm({ status: "verifying", client_id: res.client_id, seq });
+        toast.success(res.recount ? "Recontagem registrada" : "Registro enviado!");
         qc.invalidateQueries({ queryKey: ["inventory"] });
+        if (res.recount) qc.invalidateQueries({ queryKey: ["uc-check"] });
         trySync(true);
+
+        // Confirma com até 3 tentativas (cobre eventual lag de replicação)
+        (async () => {
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const { data: found } = await supabase
+              .from("inventory_items")
+              .select("id, item_code")
+              .eq("client_id", res.client_id)
+              .maybeSingle();
+            if (found) {
+              setConfirm({ status: "confirmed", seq, item_code: found.item_code });
+              return;
+            }
+            await new Promise((r) => setTimeout(r, 600));
+          }
+          // Não confirmou — mantém como queued para o usuário saber que ainda não apareceu
+          setConfirm({ status: "queued", seq });
+        })();
       }
+
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
       setItem("");
       setLote("");
@@ -406,6 +429,39 @@ function ColetaPage() {
               </>
             )}
           </Button>
+
+          {confirm.status !== "idle" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                confirm.status === "confirmed"
+                  ? "bg-success/15 text-success border border-success/30"
+                  : confirm.status === "verifying"
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-warning/15 text-foreground border border-warning/30"
+              }`}
+            >
+              {confirm.status === "verifying" && (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Verificando nº {confirm.seq}...
+                </>
+              )}
+              {confirm.status === "confirmed" && (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  ✓ Confirmado nº {confirm.seq} <span className="font-mono">({confirm.item_code})</span>
+                </>
+              )}
+              {confirm.status === "queued" && (
+                <>
+                  <CloudOff className="h-3.5 w-3.5" />
+                  Nº {confirm.seq} aguardando sincronização
+                </>
+              )}
+            </div>
+          )}
 
           {lastCount > 0 && (
             <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">

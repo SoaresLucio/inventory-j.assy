@@ -26,7 +26,15 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/coleta" },
     vibrate: [180, 80, 180],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Atualiza app badge se suportado (Chrome Android / iOS 16.4+ PWA instalado)
+      "setAppBadge" in self.navigator
+        ? self.navigator.setAppBadge().catch(() => {})
+        : Promise.resolve(),
+    ])
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

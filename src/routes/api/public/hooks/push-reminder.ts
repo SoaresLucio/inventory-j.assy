@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { sendPushToAll } from "@/server/push.server";
+import { sendPush } from "@/server/push.server";
 
 export const Route = createFileRoute("/api/public/hooks/push-reminder")({
   server: {
@@ -22,20 +22,23 @@ export const Route = createFileRoute("/api/public/hooks/push-reminder")({
         const presets = {
           morning: {
             title: "☀️ Bom dia, J.assy!",
-            body: "07:20 — Hora de iniciar as coletas e registrar seu inventário.",
+            body: "07:20 — Você ainda não registrou itens hoje. Hora de iniciar as coletas!",
           },
           afternoon: {
             title: "🕐 Boa tarde, J.assy!",
-            body: "13:20 — Retomada da contagem. Vamos manter o ritmo!",
+            body: "13:20 — Sem coletas registradas ainda. Vamos retomar a contagem!",
           },
         } as const;
         const preset = presets[slot] ?? presets.morning;
-        const result = await sendPushToAll({
-          title: title ?? preset.title,
-          body: message ?? preset.body,
-          url: "/coleta",
-          tag: `jassy-${slot}`,
-        });
+        const result = await sendPush(
+          {
+            title: title ?? preset.title,
+            body: message ?? preset.body,
+            url: "/coleta",
+            tag: `jassy-${slot}`,
+          },
+          { onlyInventaristasSemColetaHoje: true }
+        );
         return Response.json({ ok: true, slot, ...result });
       },
     },

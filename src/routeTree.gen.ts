@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as NotificacoesGestorRouteImport } from './routes/notificacoes-gestor'
+import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as ItensPorBoxRouteImport } from './routes/itens-por-box'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as GestorRouteImport } from './routes/gestor'
@@ -27,6 +29,16 @@ const UsuariosRoute = UsuariosRouteImport.update({
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesGestorRoute = NotificacoesGestorRouteImport.update({
+  id: '/notificacoes-gestor',
+  path: '/notificacoes-gestor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesRoute = NotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItensPorBoxRoute = ItensPorBoxRouteImport.update({
@@ -73,6 +85,8 @@ export interface FileRoutesByFullPath {
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -84,6 +98,8 @@ export interface FileRoutesByTo {
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -96,6 +112,8 @@ export interface FileRoutesById {
   '/gestor': typeof GestorRoute
   '/historico': typeof HistoricoRoute
   '/itens-por-box': typeof ItensPorBoxRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/notificacoes-gestor': typeof NotificacoesGestorRoute
   '/ranking': typeof RankingRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/hooks/push-reminder': typeof ApiPublicHooksPushReminderRoute
@@ -109,6 +127,8 @@ export interface FileRouteTypes {
     | '/gestor'
     | '/historico'
     | '/itens-por-box'
+    | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -120,6 +140,8 @@ export interface FileRouteTypes {
     | '/gestor'
     | '/historico'
     | '/itens-por-box'
+    | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -131,6 +153,8 @@ export interface FileRouteTypes {
     | '/gestor'
     | '/historico'
     | '/itens-por-box'
+    | '/notificacoes'
+    | '/notificacoes-gestor'
     | '/ranking'
     | '/usuarios'
     | '/api/public/hooks/push-reminder'
@@ -143,6 +167,8 @@ export interface RootRouteChildren {
   GestorRoute: typeof GestorRoute
   HistoricoRoute: typeof HistoricoRoute
   ItensPorBoxRoute: typeof ItensPorBoxRoute
+  NotificacoesRoute: typeof NotificacoesRoute
+  NotificacoesGestorRoute: typeof NotificacoesGestorRoute
   RankingRoute: typeof RankingRoute
   UsuariosRoute: typeof UsuariosRoute
   ApiPublicHooksPushReminderRoute: typeof ApiPublicHooksPushReminderRoute
@@ -162,6 +188,20 @@ declare module '@tanstack/react-router' {
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificacoes-gestor': {
+      id: '/notificacoes-gestor'
+      path: '/notificacoes-gestor'
+      fullPath: '/notificacoes-gestor'
+      preLoaderRoute: typeof NotificacoesGestorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificacoes': {
+      id: '/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof NotificacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/itens-por-box': {
@@ -223,6 +263,8 @@ const rootRouteChildren: RootRouteChildren = {
   GestorRoute: GestorRoute,
   HistoricoRoute: HistoricoRoute,
   ItensPorBoxRoute: ItensPorBoxRoute,
+  NotificacoesRoute: NotificacoesRoute,
+  NotificacoesGestorRoute: NotificacoesGestorRoute,
   RankingRoute: RankingRoute,
   UsuariosRoute: UsuariosRoute,
   ApiPublicHooksPushReminderRoute: ApiPublicHooksPushReminderRoute,
