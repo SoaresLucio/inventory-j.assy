@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { memo, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { memo, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ProtectedShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -41,6 +41,7 @@ function GestorPage() {
   const [dateFilter, setDateFilter] = useState("");
   const sendTest = useServerFn(sendTestPush);
   const [pushBusy, setPushBusy] = useState(false);
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["inventory", "all"],
@@ -64,6 +65,21 @@ function GestorPage() {
       return { rows, profiles: profs.data! };
     },
   });
+
+  // Realtime: novos itens aparecem no painel sem recarregar
+  useEffect(() => {
+    const channel = supabase
+      .channel("gestor-inventory")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "inventory_items" },
+        () => qc.invalidateQueries({ queryKey: ["inventory", "all"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const filtered = useMemo(() => {
     if (!data) return [];

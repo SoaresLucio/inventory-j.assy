@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProtectedShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/historico")({
 
 function HistoricoPage() {
   const { user, profile } = useAuth();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["inventory", "mine", user?.id],
     enabled: !!user,
@@ -40,6 +42,22 @@ function HistoricoPage() {
       return data;
     },
   });
+
+  // Realtime: novo item do próprio usuário aparece na lista sem recarregar
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`mine-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "inventory_items", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["inventory", "mine", user.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
 
   const exportXlsx = async () => {
     if (!data || data.length === 0) {
