@@ -64,51 +64,67 @@ function ColetaPage() {
 
   const refreshPending = () => pendingCount().then(setPending);
 
+  // Atualiza o cache do histórico/painel imediatamente, sem esperar refetch
+  const pushItemToCaches = useCallback((row: Record<string, unknown>) => {
+    qc.setQueriesData<unknown>({ queryKey: ["inventory"] }, (old) => {
+      if (!old) return old;
+      if (Array.isArray(old)) {
+        if (old.some((r: { client_id?: string }) => r.client_id === row.client_id)) return old;
+        return [row, ...old];
+      }
+      if (typeof old === "object" && old && "rows" in (old as Record<string, unknown>)) {
+        const o = old as { rows: Array<{ client_id?: string }>; profiles?: unknown };
+        if (o.rows.some((r) => r.client_id === row.client_id)) return old;
+        return { ...o, rows: [row, ...o.rows] };
+      }
+      return old;
+    });
+  }, [qc]);
+
   const confirmSavedItem = useCallback(async (client_id: string, seq: number) => {
     setConfirm((current) =>
       current.status === "confirmed" && current.seq === seq ? current : { status: "verifying", client_id, seq },
     );
 
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
       const { data: found } = await supabase
         .from("inventory_items")
-        .select("id, item_code")
+        .select("*")
         .eq("client_id", client_id)
         .maybeSingle();
       if (found) {
         setConfirm({ status: "confirmed", seq, item_code: found.item_code });
         if (queuedConfirmRef.current?.client_id === client_id) queuedConfirmRef.current = null;
+        pushItemToCaches(found as Record<string, unknown>);
         qc.invalidateQueries({ queryKey: ["inventory"] });
         qc.invalidateQueries({ queryKey: ["uc-check"] });
         return true;
       }
-      await new Promise((r) => setTimeout(r, 700));
+      await new Promise((r) => setTimeout(r, 600));
     }
 
     queuedConfirmRef.current = { client_id, seq };
     setConfirm({ status: "queued", seq, client_id });
     return false;
-  }, [qc]);
+  }, [qc, pushItemToCaches]);
 
   const trySync = useCallback(async (silent = false) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
     const { ok, failed, synced } = await flushQueue();
     if (ok > 0) {
-      toast.success(`${ok} registro(s) sincronizado(s)`);
+      if (!silent) toast.success(`${ok} registro(s) sincronizado(s)`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["uc-check"] });
       const queuedConfirm = queuedConfirmRef.current;
       const pendingConfirm = queuedConfirm ? synced.find((it) => it.client_id === queuedConfirm.client_id) : null;
-      const itemToConfirm = pendingConfirm ?? synced.at(-1);
-      if (itemToConfirm) {
-        const seq = queuedConfirm && pendingConfirm ? queuedConfirm.seq : lastCount || ok;
-        await confirmSavedItem(itemToConfirm.client_id, seq);
+      if (pendingConfirm && queuedConfirm) {
+        await confirmSavedItem(pendingConfirm.client_id, queuedConfirm.seq);
       }
     } else if (failed > 0 && !silent) {
       toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
     }
     refreshPending();
-  }, [confirmSavedItem, lastCount, qc]);
+  }, [confirmSavedItem, qc]);
 
   useEffect(() => {
     refreshPending();
