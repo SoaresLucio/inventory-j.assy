@@ -204,20 +204,31 @@ function ColetaPage() {
       const item_code = vals.item_code;
       const payload = { ...vals, user_id: user.id, client_id, created_at: new Date().toISOString() };
 
-      // Sempre enfileira PRIMEIRO (garantia anti-perda em caso de crash/refresh)
+      // ONLINE-FIRST: tenta inserir imediatamente quando há conexão
+      if (typeof navigator === "undefined" || navigator.onLine) {
+        const { data: inserted, error } = await supabase
+          .from("inventory_items")
+          .insert(payload)
+          .select("*")
+          .maybeSingle();
+        if (!error && inserted) {
+          return { offline: false, recount: !!overrideId, client_id, item_code, row: inserted };
+        }
+        if (error && error.code === "23505") {
+          // Já existia (mesmo client_id) — busca a linha existente
+          const { data: existingRow } = await supabase
+            .from("inventory_items")
+            .select("*")
+            .eq("client_id", client_id)
+            .maybeSingle();
+          return { offline: false, recount: !!overrideId, client_id, item_code, row: existingRow ?? null };
+        }
+        // Falhou (rede/servidor) — cai para fila offline
+      }
+
+      // Salva offline (anti-perda)
       await enqueueItem(payload);
-
-      if (!navigator.onLine) {
-        return { offline: true, recount: !!overrideId, client_id, item_code };
-      }
-
-      // Tenta enviar imediatamente
-      const { error } = await supabase.from("inventory_items").insert(payload);
-      if (error && error.code !== "23505") {
-        return { offline: true, recount: !!overrideId, client_id, item_code };
-      }
-      await removePending(client_id);
-      return { offline: false, recount: !!overrideId, client_id, item_code };
+      return { offline: true, recount: !!overrideId, client_id, item_code, row: null };
     },
     onSuccess: async (res) => {
       const seq = lastCount + 1;
@@ -227,19 +238,24 @@ function ColetaPage() {
       setTimeout(() => setFloatPts(0), 1200);
 
       if (res.offline) {
-        toast.info("Salvo offline — será enviado automaticamente.");
+        toast.info("Sem internet — salvo localmente e será enviado ao reconectar.");
         queuedConfirmRef.current = { client_id: res.client_id, seq };
         setConfirm({ status: "queued", seq, client_id: res.client_id });
         refreshPending();
         setTimeout(() => trySync(true), 2000);
       } else {
-        // Validação pós-salvamento: confirma que o servidor já vê o item
-        setConfirm({ status: "verifying", client_id: res.client_id, seq });
         toast.success(res.recount ? "Recontagem registrada" : "Registro enviado!");
-        qc.invalidateQueries({ queryKey: ["inventory"] });
-        if (res.recount) qc.invalidateQueries({ queryKey: ["uc-check"] });
-        trySync(true);
-        confirmSavedItem(res.client_id, seq);
+        if (res.row) {
+          // Confirmação INSTANTÂNEA — sem esperar polling
+          setConfirm({ status: "confirmed", seq, item_code: res.item_code });
+          pushItemToCaches(res.row as Record<string, unknown>);
+          qc.invalidateQueries({ queryKey: ["inventory"] });
+          if (res.recount) qc.invalidateQueries({ queryKey: ["uc-check"] });
+        } else {
+          // Fallback: polling para confirmar
+          setConfirm({ status: "verifying", client_id: res.client_id, seq });
+          confirmSavedItem(res.client_id, seq);
+        }
       }
 
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
