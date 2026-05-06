@@ -58,23 +58,57 @@ function ColetaPage() {
     | { status: "idle" }
     | { status: "verifying"; client_id: string; seq: number }
     | { status: "confirmed"; seq: number; item_code: string }
-    | { status: "queued"; seq: number };
+    | { status: "queued"; seq: number; client_id?: string };
   const [confirm, setConfirm] = useState<ConfirmState>({ status: "idle" });
+  const queuedConfirmRef = useRef<{ client_id: string; seq: number } | null>(null);
 
   const refreshPending = () => pendingCount().then(setPending);
 
+  const confirmSavedItem = useCallback(async (client_id: string, seq: number) => {
+    setConfirm((current) =>
+      current.status === "confirmed" && current.seq === seq ? current : { status: "verifying", client_id, seq },
+    );
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: found } = await supabase
+        .from("inventory_items")
+        .select("id, item_code")
+        .eq("client_id", client_id)
+        .maybeSingle();
+      if (found) {
+        setConfirm({ status: "confirmed", seq, item_code: found.item_code });
+        if (queuedConfirmRef.current?.client_id === client_id) queuedConfirmRef.current = null;
+        qc.invalidateQueries({ queryKey: ["inventory"] });
+        qc.invalidateQueries({ queryKey: ["uc-check"] });
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, 700));
+    }
+
+    queuedConfirmRef.current = { client_id, seq };
+    setConfirm({ status: "queued", seq, client_id });
+    return false;
+  }, [qc]);
+
   const trySync = useCallback(async (silent = false) => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
-    const { ok, failed } = await flushQueue();
+    const { ok, failed, synced } = await flushQueue();
     if (ok > 0) {
       toast.success(`${ok} registro(s) sincronizado(s)`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["uc-check"] });
+      const queuedConfirm = queuedConfirmRef.current;
+      const pendingConfirm = queuedConfirm ? synced.find((it) => it.client_id === queuedConfirm.client_id) : null;
+      const itemToConfirm = pendingConfirm ?? synced.at(-1);
+      if (itemToConfirm) {
+        const seq = queuedConfirm && pendingConfirm ? queuedConfirm.seq : lastCount || ok;
+        await confirmSavedItem(itemToConfirm.client_id, seq);
+      }
     } else if (failed > 0 && !silent) {
       toast.error(`${failed} registro(s) com falha — tentaremos novamente`);
     }
     refreshPending();
-  }, [qc]);
+  }, [confirmSavedItem, lastCount, qc]);
 
   useEffect(() => {
     refreshPending();
@@ -178,7 +212,8 @@ function ColetaPage() {
 
       if (res.offline) {
         toast.info("Salvo offline — será enviado automaticamente.");
-        setConfirm({ status: "queued", seq });
+        queuedConfirmRef.current = { client_id: res.client_id, seq };
+        setConfirm({ status: "queued", seq, client_id: res.client_id });
         refreshPending();
         setTimeout(() => trySync(true), 2000);
       } else {
@@ -188,24 +223,7 @@ function ColetaPage() {
         qc.invalidateQueries({ queryKey: ["inventory"] });
         if (res.recount) qc.invalidateQueries({ queryKey: ["uc-check"] });
         trySync(true);
-
-        // Confirma com até 3 tentativas (cobre eventual lag de replicação)
-        (async () => {
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const { data: found } = await supabase
-              .from("inventory_items")
-              .select("id, item_code")
-              .eq("client_id", res.client_id)
-              .maybeSingle();
-            if (found) {
-              setConfirm({ status: "confirmed", seq, item_code: found.item_code });
-              return;
-            }
-            await new Promise((r) => setTimeout(r, 600));
-          }
-          // Não confirmou — mantém como queued para o usuário saber que ainda não apareceu
-          setConfirm({ status: "queued", seq });
-        })();
+        confirmSavedItem(res.client_id, seq);
       }
 
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
