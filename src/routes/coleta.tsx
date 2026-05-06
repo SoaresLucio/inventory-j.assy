@@ -212,6 +212,7 @@ function ColetaPage() {
 
       if (res.offline) {
         toast.info("Salvo offline — será enviado automaticamente.");
+        queuedConfirmRef.current = { client_id: res.client_id, seq };
         setConfirm({ status: "queued", seq, client_id: res.client_id });
         refreshPending();
         setTimeout(() => trySync(true), 2000);
@@ -222,24 +223,7 @@ function ColetaPage() {
         qc.invalidateQueries({ queryKey: ["inventory"] });
         if (res.recount) qc.invalidateQueries({ queryKey: ["uc-check"] });
         trySync(true);
-
-        // Confirma com até 3 tentativas (cobre eventual lag de replicação)
-        (async () => {
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const { data: found } = await supabase
-              .from("inventory_items")
-              .select("id, item_code")
-              .eq("client_id", res.client_id)
-              .maybeSingle();
-            if (found) {
-              setConfirm({ status: "confirmed", seq, item_code: found.item_code });
-              return;
-            }
-            await new Promise((r) => setTimeout(r, 600));
-          }
-          // Não confirmou — mantém como queued para o usuário saber que ainda não apareceu
-          setConfirm({ status: "queued", seq, client_id: res.client_id });
-        })();
+        confirmSavedItem(res.client_id, seq);
       }
 
       // Reset Item, UC, Lote — endereço PERMANECE para acelerar coletas no mesmo box
